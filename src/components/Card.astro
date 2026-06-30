@@ -1,0 +1,75 @@
+---
+interface Link { label: string; href: string }
+interface Props {
+  variant?: 'poster' | 'wide' | 'square' | 'photo' | 'row';
+  image?: string;
+  kicker?: string;
+  title: string;
+  subtitle?: string;
+  date?: Date;
+  tags?: string[];
+  rating?: number;
+  status?: string;
+  progress?: { show: boolean; value: number };
+  links?: Link[];
+}
+const {
+  variant = 'wide', image, kicker, title, subtitle, date,
+  tags = [], rating, status, progress, links = [],
+} = Astro.props;
+
+const ratio: Record<string, string> = {
+  poster: '2 / 3', wide: '16 / 9', square: '1 / 1', photo: '3 / 2', row: '',
+};
+const r = rating != null ? Math.round(rating) : null;
+const stars = r != null ? '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) : null;
+const dateStr = date
+  ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short' }).format(date)
+  : null;
+const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
+---
+<article class={`card card--${variant}`}>
+  {variant !== 'row' && (
+    <div class="card__media" style={ratio ? `aspect-ratio:${ratio}` : undefined}>
+      {image ? <img src={image} alt={title} loading="lazy" /> : <span class="card__ph">no image</span>}
+      {status && <span class="card__status">{status}</span>}
+    </div>
+  )}
+  <div class="card__body">
+    {kicker && <p class="card__kicker">{kicker}</p>}
+    <h3 class="card__title">{title}</h3>
+    {subtitle && <p class="card__sub">{subtitle}</p>}
+    {stars && <p class="card__rating" aria-label={`${r} out of 5`}>{stars}</p>}
+    {progress?.show && (
+      <div class="card__bar" role="progressbar" aria-valuenow={progress.value} aria-valuemin={0} aria-valuemax={100}>
+        <i style={`width:${progress.value}%`}></i>
+      </div>
+    )}
+    {metaBits && <p class="card__meta">{metaBits}</p>}
+    {links.length > 0 && (
+      <p class="card__links">{links.map((l) => <a href={l.href}>{l.label} ↗</a>)}</p>
+    )}
+  </div>
+</article>
+
+<style>
+  .card { border: 1.5px solid var(--ink); background: var(--bone); display: flex; flex-direction: column; }
+  .card--row { flex-direction: row; align-items: baseline; gap: var(--space-3); border: 0; border-top: 1.5px solid var(--line); padding: var(--space-3) 0; }
+  .card__media { position: relative; border-bottom: 1.5px solid var(--ink); display: flex; align-items: flex-end; overflow: hidden;
+    background-image: repeating-linear-gradient(135deg, rgba(20, 19, 16, 0.06) 0 8px, transparent 8px 16px); }
+  .card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card__ph { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); padding: var(--space-2); text-transform: uppercase; }
+  .card__status { position: absolute; top: 8px; right: 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--ink); padding: 1px 6px; background: var(--bone); }
+  .card__body { padding: var(--space-3); display: flex; flex-direction: column; gap: 6px; }
+  .card--row .card__body { padding: 0; }
+  .card__kicker { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin: 0; }
+  .card__title { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; letter-spacing: 0.3px; }
+  .card__sub { font-size: 13px; color: var(--mut); margin: 0; }
+  .card__rating { color: var(--acc); letter-spacing: 2px; margin: 0; }
+  .card__bar { height: 6px; border: 1px solid var(--ink); }
+  .card__bar i { display: block; height: 100%; background: var(--acc); }
+  .card__meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); margin: 0; text-transform: uppercase; }
+  .card__links { display: flex; gap: 12px; margin: 2px 0 0; }
+  .card__links a { font-family: var(--font-mono); font-size: 11px; color: var(--acc); text-decoration: none; }
+  .card__links a:hover { text-decoration: underline; }
+</style>

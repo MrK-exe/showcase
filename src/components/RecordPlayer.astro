@@ -1,0 +1,41 @@
+---
+interface Props { num: string; id: string; title: string; meta?: string; weight?: string }
+const { num, id, title, meta, weight = 'compact' } = Astro.props;
+// placeholder tracklist — replaced by real playlist data later
+const tracks = [
+  'Untitled I', 'Nightdrive', 'Carrier Signal', 'Low Orbit', 'Paper Streets',
+  'Dust & Static', 'Afterimage', 'Cassette Sun', 'Margins', 'Outlands',
+];
+---
+<section class={`section section--${weight}`} id={id} data-section>
+  <header class="section__head reveal" data-reveal="flick">
+    <span class="section__num" data-scramble="reveal periodic" data-scramble-chars="0-9">{num}</span>
+    <h2 class="section__title" data-scramble="reveal periodic">{title}</h2>
+    {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
+  </header>
+
+  <div class="rp reveal" data-reveal="rise">
+    <div class="rp__deck">
+      <div class="rp__vinyl" id="vinyl">
+        <span class="rp__art" id="rp-art" aria-hidden="true"></span>
+        <span class="rp__hole"></span>
+      </div>
+      <p class="rp__title" id="rp-title">{tracks[0]}</p>
+    </div>
+
+    <div class="rp__panel">
+      <div class="rp__controls">
+        <button class="btn rp__btn" id="rp-play" data-mag>play</button>
+        <span class="rp__now lab" id="rp-now">track 01 / {tracks.length}</span>
+      </div>
+      <ol class="rp__tracks" id="rp-tracks">
+        {tracks.map((t, i) => (
+          <li data-track={i} data-title={t}>
+            <span>{String(i + 1).padStart(2, '0')} · {t}</span><span class="lab">0:30</span>
+          </li>
+        ))}
+      </ol>
+      <div class="rp__embed">spotify playlist embed (placeholder)</div>
+    </div>
+  </div>
+</section>

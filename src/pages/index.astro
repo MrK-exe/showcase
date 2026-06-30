@@ -1,0 +1,53 @@
+---
+import Experience from '../layouts/Experience.astro';
+import Section from '../components/Section.astro';
+import RecordPlayer from '../components/RecordPlayer.astro';
+import { sections, site } from '../config/site.config';
+import { getCollection } from 'astro:content';
+
+const enabled = sections.filter((s) => s.enabled);
+const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
+
+const resolved = await Promise.all(
+  enabled.map(async (s) => {
+    let entries: { data: Record<string, any> }[] = [];
+    if (s.collection) {
+      const items = await getCollection(s.collection as any);
+      entries = items
+        .sort((a: any, b: any) => (a.data.order ?? 0) - (b.data.order ?? 0))
+        .map((e: any) => ({ data: e.data }));
+    }
+    return { s, entries };
+  })
+);
+---
+<Experience>
+  <header class="hero" id="top">
+    <p class="hero__kicker" data-scramble="periodic">{site.tagline}</p>
+    <h1 class="hero__word" id="word"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
+    {/* placeholder positioning line — to be replaced with Abdullah's own line (Phase A5) */}
+    <p class="hero__tag" id="tag">Filmmaker, developer &amp; writer.</p>
+
+    <nav class="hero__links" id="hero-links" aria-label="Jump to section">
+      {enabled.map((s, i) => (
+        <a href={`#${s.id}`} data-sectlink data-mag>
+          <span class="hl-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><span class="navlink__t" data-scramble="hover periodic">{s.title}</span>
+        </a>
+      ))}
+    </nav>
+
+    <button class="signal" id="hero-signal" data-open="signal-modal" data-mag aria-label="4 active signals">
+      <span class="radar" id="hero-radar" aria-hidden="true"></span>
+      <b class="signal__num" id="sig-count" data-scramble="periodic hover" data-scramble-chars="0-9">4</b>
+    </button>
+
+    <p class="hero__hint lab">↓ scroll</p>
+  </header>
+
+  {resolved.map(({ s, entries }, i) => {
+    const num = String(i + 1).padStart(2, '0');
+    return s.component === 'RecordPlayer'
+      ? <RecordPlayer num={num} id={s.id} title={s.title} meta={s.meta} weight={s.weight} />
+      : <Section num={num} id={s.id} title={s.title} meta={s.meta} entries={entries} reveal={reveals[i % reveals.length]} weight={s.weight} />;
+  })}
+</Experience>

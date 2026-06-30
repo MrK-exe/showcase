@@ -1,0 +1,17 @@
+---
+import { sections } from '../config/site.config';
+const enabled = sections.filter((s) => s.enabled);
+---
+<nav id="rail" aria-label="Sections">
+  <ul class="rail__list">
+    {enabled.map((s, i) => (
+      <li>
+        <a href={`#${s.id}`} data-nav={s.id} class="rail__item">
+          <span class="rail__dot" aria-hidden="true"></span>
+          <span class="rail__num">{String(i + 1).padStart(2, '0')}</span>
+          <span class="rail__label">{s.title}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>

@@ -1,0 +1,685 @@
+---
+import '../styles/tokens.css';
+import 'locomotive-scroll/dist/locomotive-scroll.css';
+import '../styles/app.css';
+import { site, links } from '../config/site.config';
+import Nav from '../components/Nav.astro';
+import banner from '../generated/banner.txt?raw';
+import wordmarkSVG from '../generated/wordmark.svg?raw';
+
+interface Props { title?: string }
+const { title } = Astro.props;
+const pageTitle = title || `${site.name} — ${site.tagline}`;
+
+// city pins overlaid on the dotted world map (lazy-loaded background)
+const cities = [
+  { name: 'Riyadh', n: 2, x: 60.5, y: 55 },
+  { name: 'London', n: 1, x: 48.5, y: 38 },
+  { name: 'New York', n: 1, x: 27, y: 44 },
+  { name: 'Tokyo', n: 1, x: 86, y: 46 },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={`${site.author} — ${site.tagline}`} />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='50' y='6' width='62' height='62' transform='rotate(45 50 50)' fill='%23E5341C'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- build-log boot intro -->
+    <div id="intro">
+      <div id="intro-log"></div>
+      <pre id="intro-banner" aria-hidden="true">{banner}</pre>
+      <span class="caret" id="intro-caret">_</span>
+      <button id="intro-skip" class="skip" type="button">skip ⏎</button>
+    </div>
+
+    <!-- lock-on bracket cursor -->
+    <div id="cur"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+
+    <!-- curved-glass overlay (curvature toggle) + drifting glare -->
+    <div id="glass"><div id="glare"></div></div>
+    <!-- rolling refresh/sync bar — the "alive" CRT signature (scanlines toggle) -->
+    <div id="sync"></div>
+
+    <!-- wordmark glyph outlines for the createDrawable FX (generated from Chakra Petch via opentype.js) -->
+    <template id="word-draw-tpl" set:html={wordmarkSVG}></template>
+
+    <Nav />
+
+    <div id="controls">
+      <button class="btn" id="connect-btn" data-open="connect-modal" data-mag data-scramble="hover">connect</button>
+      <div class="menu">
+        <button class="btn" id="dev-btn" data-mag data-scramble="hover">dev</button>
+        <div id="dev-panel" role="menu">
+          <label class="tog" data-mag><input type="checkbox" id="t-sound" checked /><span class="box"></span><span>sound</span></label>
+          <label class="tog" data-mag><input type="checkbox" id="t-crt" checked /><span class="box"></span><span>scanlines</span></label>
+          <label class="tog" data-mag><input type="checkbox" id="t-curve" checked /><span class="box"></span><span>curvature</span></label>
+          <button class="fxbtn" id="fx-cycle" data-mag type="button">name fx · scramble ↻</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="page">
+      <div id="crt"></div>
+      <main><slot /></main>
+      <footer class="foot">© 2026 {site.name} · <span class="foot__sys" data-scramble="periodic hover">sys·{site.codename}</span> · {site.url.replace('https://', '')} · built with Astro</footer>
+    </div>
+
+    <!-- persistent controls button + first-open controls card -->
+    <button id="controls-btn" data-mag aria-label="Controls" aria-expanded="false">[ ? ]</button>
+    <aside id="hud-controls" role="note" aria-live="polite" hidden>
+      <button class="hud-x" data-hud-dismiss aria-label="dismiss controls">✕</button>
+      <div class="hud-row"><span class="hud-k">move</span><span class="hud-v">◂ ▸ ▴ ▾ · wasd</span></div>
+      <div class="hud-row"><span class="hud-k">select</span><span class="hud-v">enter</span></div>
+      <div class="hud-row"><span class="hud-k">back</span><span class="hud-v">esc</span></div>
+    </aside>
+
+    <!-- connect modal -->
+    <div class="modal" id="connect-modal">
+      <div class="sheet">
+        <h3>Connect <button class="xbtn" data-close data-mag>✕</button></h3>
+        <div class="linklist">
+          {links.map((l) => <a href={l.href} data-mag>{l.label} <span class="acc">↗</span></a>)}
+        </div>
+      </div>
+    </div>
+
+    <!-- signal modal: dotted world map (no jump links) -->
+    <div class="modal" id="signal-modal">
+      <div class="sheet">
+        <h3>Active signals <button class="xbtn" data-close data-mag>✕</button></h3>
+        <div class="lab"><span class="acc">●</span> <span id="sig-count-modal">4</span> active now</div>
+        <div class="worldmap" id="worldmap">
+          {cities.map((c) => (
+            <div class="wd" style={`left:${c.x}%;top:${c.y}%`}>
+              <span class="ring"></span>
+              <span class="cty">{c.name}</span><span class="cnt">{c.n}</span>
+            </div>
+          ))}
+        </div>
+        <p class="lab maphint">live visitor map · approximate region</p>
+      </div>
+    </div>
+
+    <script>
+      import * as A from 'animejs';
+      import LocomotiveScroll from 'locomotive-scroll';
+      import lagRadar from '../vendor/lag-radar.js';
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const $ = (s: string) => document.querySelector(s) as HTMLElement | null;
+
+      /* ---------------- smooth scroll + parallax (Locomotive Scroll v5, built on Lenis) ----------------
+         data-scroll + data-scroll-speed on elements drives parallax; auto-disables on touch. */
+      let loco: any = null;
+      if (!reduce) {
+        loco = new LocomotiveScroll({ lenisOptions: { lerp: 0.1, wheelMultiplier: 1, smoothWheel: true } });
+      }
+      const goTo = (el: Element | null) => {
+        if (!el) return;
+        if (loco) loco.scrollTo(el as HTMLElement, { offset: -80, duration: 0.9 });
+        else (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+      /* ---------------- build-log boot intro (one-time per session, accessible skip, Y2K bars) ---------------- */
+      (function intro() {
+        const el = $('#intro');
+        const log = $('#intro-log');
+        const bannerEl = $('#intro-banner');
+        const skipBtn = $('#intro-skip');
+        if (!el || !log) return;
+        const PLAYED = 'pc.intro.played';
+        const done = () => {
+          if (el.classList.contains('off')) return;
+          el.classList.add('off');
+          document.dispatchEvent(new Event('intro:done'));
+          setTimeout(() => el.remove(), 700);
+        };
+        // skip: click anywhere, the skip button, or Enter/Space/Esc
+        el.addEventListener('click', done);
+        skipBtn?.addEventListener('click', (e) => { e.stopPropagation(); done(); });
+        el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); done(); } });
+
+        // play once per tab session (no replay on alt-tab/reload); reduced-motion skips
+        let played = false; try { played = !!sessionStorage.getItem(PLAYED); } catch (_) {}
+        // defer so listeners registered later in this script (hero flip + scramble) catch intro:done on reload
+        if (played || reduce) { setTimeout(done, 0); return; }
+        try { sessionStorage.setItem(PLAYED, '1'); } catch (_) {}
+        setTimeout(() => skipBtn?.focus(), 60);
+
+        if (A.animate) A.animate('#intro-caret', { opacity: [1, 0], duration: 560, loop: true, alternate: true, ease: 'inOutQuad' });
+
+        const line = (html: string, cls = '') => {
+          const d = document.createElement('div');
+          d.className = 'il ' + cls;
+          d.innerHTML = html;
+          log.appendChild(d);
+          return d;
+        };
+        const ok = '<span class="ok">ok</span>';
+        const slow = [
+          '<span class="dim">$</span> boot psychic-carnival <span class="dim">— rev.01</span>',
+          '<span class="dim">▶</span> mounting modules ......... ' + ok,
+        ];
+        const burst = [
+          'sys   identity ......... abdullah aletai',
+          'load  /work /writing /photography',
+          'load  /films /games /music',
+          'auth  @abdullahVEVO .... ' + ok,
+        ];
+
+        const bar = (label: string) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'il bar';
+          wrap.innerHTML = `<span class="blabel">${label}</span><span class="track"><i></i></span><span class="bpct">0%</span>`;
+          log.appendChild(wrap);
+          return wrap;
+        };
+
+        // authentic Y2K bar — discrete chunks + an awkward stall, then a snap to 100. Each call
+        // randomizes its own waypoints AND hold times, so two bars running together fill out of sync.
+        const rnd = (a: number, z: number) => a + Math.random() * (z - a);
+        const fillY2K = (w: HTMLElement, then: () => void) => {
+          const b = w.querySelector('i') as HTMLElement;
+          const pct = w.querySelector('.bpct') as HTMLElement;
+          const pStall = Math.round(rnd(80, 90));
+          const steps: [number, number][] = [
+            [Math.round(rnd(10, 22)), rnd(90, 200)],
+            [Math.round(rnd(30, 45)), rnd(120, 260)],
+            [Math.round(rnd(30, 45)), rnd(70, 150)],   // brief hold (re-rolled, ~same band)
+            [Math.round(rnd(55, 72)), rnd(110, 230)],
+            [pStall, rnd(70, 150)],
+            [pStall, rnd(360, 720)],                   // the awkward stall — randomized length
+            [100, 0],
+          ];
+          let i = 0;
+          const tick = () => {
+            if (i >= steps.length) { setTimeout(then, 100); return; }
+            const [v, hold] = steps[i++];
+            b.style.width = v + '%'; pct.textContent = v + '%';
+            setTimeout(tick, hold + 25);
+          };
+          tick();
+        };
+
+        let i = 0;
+        const slowStep = () => {
+          if (i < slow.length) { line(slow[i]); i++; setTimeout(slowStep, 300); }
+          else setTimeout(phaseBurst, 200);
+        };
+        const phaseBurst = () => {
+          burst.forEach((b) => line(b));
+          requestAnimationFrame(phaseBars);
+        };
+        const phaseBars = () => {
+          // both bars appear together and fill concurrently, each at its own randomized pace
+          const bars = [bar('mounting ui'), bar('linking signals')];
+          let remaining = bars.length;
+          const finish = () => {
+            line('<span class="ok">✓</span> ready', 'final');
+            if (bannerEl && A.animate) {
+              bannerEl.style.display = 'block';
+              A.animate(bannerEl, { opacity: [0, 1], duration: 320, ease: 'outQuad' });
+            }
+            setTimeout(done, 600);
+          };
+          bars.forEach((b) => fillY2K(b, () => { if (--remaining === 0) finish(); }));
+        };
+        slowStep();
+      })();
+
+      /* ---------------- lock-on bracket cursor + keyboard nav ---------------- */
+      const SEL = 'a[href],button:not(:disabled),input:not([type=hidden]),[data-mag],.rail__item';
+      (function cursor() {
+        const cur = $('#cur');
+        if (!cur || window.matchMedia('(pointer: coarse)').matches) return;
+        let mx = innerWidth / 2, my = innerHeight / 2;
+        let hoverEl: HTMLElement | null = null, focusEl: HTMLElement | null = null;
+        let mode: 'mouse' | 'key' = 'mouse';
+        let cx = mx, cy = my, cw = 22, ch = 22;
+
+        addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; mode = 'mouse'; cur.style.opacity = '1'; }, { passive: true });
+        document.addEventListener('mouseover', (e) => { const t = (e.target as HTMLElement).closest(SEL) as HTMLElement; if (t) hoverEl = t; });
+        document.addEventListener('mouseout', (e) => {
+          const t = (e.target as HTMLElement).closest(SEL);
+          const to = (e.relatedTarget as HTMLElement)?.closest?.(SEL) || null;
+          if (t && t !== to) hoverEl = (to as HTMLElement) || null;
+        });
+        document.addEventListener('focusin', (e) => { const t = (e.target as HTMLElement).closest(SEL) as HTMLElement; if (t) focusEl = t; });
+        document.addEventListener('focusout', () => { focusEl = null; });
+        addEventListener('mousedown', () => { cur.classList.add('flash'); setTimeout(() => cur.classList.remove('flash'), 140); });
+
+        (function loop() {
+          const raw = mode === 'key' ? (focusEl || hoverEl) : hoverEl;
+          // a hidden 0×0 toggle input (or its label) should frame the visible .tog row
+          const t = ((raw && raw.closest && raw.closest('.tog')) as HTMLElement) || raw;
+          let tx, ty, tw, th;
+          if (t && document.body.contains(t)) {
+            const r = t.getBoundingClientRect();
+            tx = r.left + r.width / 2; ty = r.top + r.height / 2; tw = r.width + 14; th = r.height + 12;
+            cur.classList.add('hot');
+          } else { tx = mx; ty = my; tw = 22; th = 22; cur.classList.remove('hot'); }
+          cx += (tx - cx) * 0.28; cy += (ty - cy) * 0.28; cw += (tw - cw) * 0.32; ch += (th - ch) * 0.32;
+          cur.style.transform = `translate(${cx}px,${cy}px)`;
+          cur.style.width = cw + 'px'; cur.style.height = ch + 'px';
+          cur.style.marginLeft = -cw / 2 + 'px'; cur.style.marginTop = -ch / 2 + 'px';
+          requestAnimationFrame(loop);
+        })();
+
+        // spatial keyboard navigation (arrows + WASD)
+        const DIR: Record<string, string> = { arrowup: 'u', arrowdown: 'd', arrowleft: 'l', arrowright: 'r', w: 'u', s: 'd', a: 'l', d: 'r' };
+        const visible = (el: HTMLElement) => {
+          if (!(el as any).offsetParent && el !== document.body) return false;
+          if (el.closest('.modal:not(.open)')) return false;
+          if (!document.querySelector('.modal.open') && el.closest('.modal')) return false;
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        addEventListener('keydown', (e) => {
+          const tag = (document.activeElement?.tagName || '').toLowerCase();
+          if (tag === 'textarea' || (tag === 'input' && (document.activeElement as HTMLInputElement).type === 'text')) return;
+          const key = e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase();
+          if (e.key === 'Escape') { document.querySelectorAll('.modal.open').forEach((m) => m.classList.remove('open')); return; }
+          if (e.key === 'Enter' && mode === 'key') { const a = document.activeElement as HTMLElement; if (a && a.closest(SEL)) { e.preventDefault(); a.click(); } return; }
+          const d = DIR[key];
+          if (!d) return;
+          e.preventDefault(); mode = 'key';
+          const list = (Array.from(document.querySelectorAll(SEL)) as HTMLElement[]).filter(visible);
+          // anchor on the genuinely focused element (robust); else the reticle position
+          const active = document.activeElement as HTMLElement | null;
+          const ref = (active && active !== document.body && active.closest(SEL) && visible(active)) ? active : null;
+          const cur0 = ref ? ref.getBoundingClientRect() : { left: cx, top: cy, width: 0, height: 0 } as DOMRect;
+          const cc = { x: cur0.left + cur0.width / 2, y: cur0.top + cur0.height / 2 };
+          let best: HTMLElement | null = null, bestScore = Infinity;
+          for (const el of list) {
+            if (el === ref) continue;
+            const r = el.getBoundingClientRect();
+            const px = r.left + r.width / 2, py = r.top + r.height / 2;
+            const dx = px - cc.x, dy = py - cc.y;
+            let along = 0, cross = 0;
+            if (d === 'u') { if (dy >= -2) continue; along = -dy; cross = Math.abs(dx); }
+            else if (d === 'd') { if (dy <= 2) continue; along = dy; cross = Math.abs(dx); }
+            else if (d === 'l') { if (dx >= -2) continue; along = -dx; cross = Math.abs(dy); }
+            else { if (dx <= 2) continue; along = dx; cross = Math.abs(dy); }
+            const score = along + cross * 2.2;
+            if (score < bestScore) { bestScore = score; best = el; }
+          }
+          if (best) {
+            // a .tog label isn't focusable — focus its hidden checkbox so Enter still toggles
+            const ft = (best.matches('label') ? best.querySelector('input,button,a') as HTMLElement | null : null) || best;
+            ft.focus({ preventScroll: true });
+            focusEl = best;
+            goTo(best.closest('[data-section], .hero, footer, .section, header') || best);
+            sound.nav();
+          }
+        });
+      })();
+
+      /* ---------------- sound kit (web audio) ---------------- */
+      const sound = (function () {
+        let AC: AudioContext | null = null, muted = false, armed = false;
+        const VOL = 0.5;
+        const ac = () => { if (!AC) AC = new (window.AudioContext || (window as any).webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; };
+        const tone = (o: any) => {
+          if (muted || !armed) return;
+          const c = ac(), t = c.currentTime, os = c.createOscillator(), g = c.createGain();
+          os.type = o.type || 'sine'; os.frequency.setValueAtTime(o.f, t);
+          if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + (o.dur || 0.08));
+          const v = (o.vol || 0.3) * VOL;
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v), t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + (o.dur || 0.08));
+          os.connect(g).connect(c.destination); os.start(t); os.stop(t + (o.dur || 0.08) + 0.03);
+        };
+        const nz = (o: any) => {
+          if (muted || !armed) return;
+          const c = ac(), t = c.currentTime, dur = o.dur || 0.04;
+          const b = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate), d = b.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const s = c.createBufferSource(); s.buffer = b;
+          const g = c.createGain(), f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = o.cut || 3000;
+          g.gain.setValueAtTime((o.vol || 0.25) * VOL, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          s.connect(f).connect(g).connect(c.destination); s.start(t); s.stop(t + dur + 0.02);
+        };
+        const api = {
+          setMuted: (m: boolean) => { muted = m; },
+          click: () => nz({ dur: 0.03, cut: 3500, vol: 0.3 }),
+          hover: () => tone({ f: 900, f2: 1500, type: 'triangle', dur: 0.05, vol: 0.1 }),
+          nav: () => tone({ f: 880, f2: 1320, type: 'square', dur: 0.05, vol: 0.18 }),
+          ping: () => tone({ f: 1800, type: 'sine', dur: 0.5, vol: 0.2 }),
+        };
+        addEventListener('pointerdown', () => { if (!armed) { armed = true; ac(); } }, { once: true });
+        addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('a,button')) api.click(); });
+        document.addEventListener('mouseover', (e) => { if ((e.target as HTMLElement).closest(SEL)) api.hover(); });
+        return api;
+      })();
+
+      /* ---------------- nav waypoints ---------------- */
+      (function nav() {
+        const navLinks = Array.from(document.querySelectorAll('[data-nav]')) as HTMLElement[];
+        const secs = Array.from(document.querySelectorAll('[data-section]')) as HTMLElement[];
+        const io = new IntersectionObserver((es) => {
+          es.forEach((e) => {
+            if (e.isIntersecting) {
+              const id = (e.target as HTMLElement).id;
+              navLinks.forEach((l) => l.classList.toggle('on', l.getAttribute('href') === '#' + id));
+            }
+          });
+        }, { threshold: 0.4 });
+        secs.forEach((s) => io.observe(s));
+        document.querySelectorAll('[data-nav], [data-sectlink]').forEach((l) =>
+          l.addEventListener('click', (e) => {
+            e.preventDefault(); sound.nav();
+            goTo(document.querySelector((l as HTMLElement).getAttribute('href')!));
+          }));
+      })();
+
+      /* ---------------- reveals (card/section fade-in via .in class) ---------------- */
+      (function reveals() {
+        const io = new IntersectionObserver((es) => {
+          es.forEach((e) => (e.target as HTMLElement).classList.toggle('in', e.isIntersecting));
+        }, { threshold: 0.15 });
+        document.querySelectorAll('.reveal').forEach((r) => io.observe(r));
+      })();
+
+      /* ---------------- text scramble / decode — native anime.js A.scrambleText ONLY ----------------
+         data-scramble="reveal periodic hover" (space-separated triggers); optional data-scramble-chars.
+         reveal  = decode when scrolled into view (re-arms on exit so it re-fires);
+         periodic = slow, randomized, staggered re-scramble while visible AND tab-focused (else paused);
+         hover   = re-scramble on pointerenter of the nearest interactive host.
+         Reduced-motion shows resolved text and skips all of it. */
+      const scramble = (function () {
+        if (reduce || !A.animate || !A.scrambleText) return { hero() {} };
+        const busy = new WeakSet<Element>();
+        const run = (el: HTMLElement, from: any = 'left') => {
+          if (busy.has(el)) return;
+          busy.add(el);
+          const len = (el.textContent || '').length || 6;
+          A.animate(el, {
+            textContent: A.scrambleText({
+              chars: el.dataset.scrambleChars || 'A-Z0-9!%#',
+              from, ease: 'inOutQuad', revealRate: 46, cursor: '_', settleDuration: 420,
+              duration: Math.min(1400, 360 + len * 44),
+            }),
+            onComplete: () => busy.delete(el),
+          });
+        };
+
+        // reveal — decode on scroll-in; re-arm on exit
+        const armed = new WeakSet<Element>();
+        const rio = new IntersectionObserver((es) => es.forEach((e) => {
+          if (e.isIntersecting) { if (!armed.has(e.target)) { armed.add(e.target); run(e.target as HTMLElement); } }
+          else armed.delete(e.target);
+        }), { threshold: 0.6 });
+        document.querySelectorAll('[data-scramble~="reveal"]').forEach((el) => rio.observe(el));
+
+        // hover — re-scramble on pointerenter of nearest a/button (so the tiny count scrambles when you hover its button)
+        document.querySelectorAll('[data-scramble~="hover"]').forEach((el) => {
+          const host = ((el as HTMLElement).closest('a,button') as HTMLElement) || (el as HTMLElement);
+          host.addEventListener('pointerenter', () => run(el as HTMLElement, 'random'));
+        });
+
+        // periodic — slow randomized loop, gated on visibility + tab focus
+        const seen = new WeakMap<Element, boolean>();
+        const pio = new IntersectionObserver((es) => es.forEach((e) => seen.set(e.target, e.isIntersecting)), { threshold: 0.5 });
+        const rnd = (a: number, z: number) => a + Math.random() * (z - a);
+        const periodic = Array.from(document.querySelectorAll('[data-scramble~="periodic"]')) as HTMLElement[];
+        periodic.forEach((el) => { seen.set(el, false); pio.observe(el); });
+        // content text (titles/nums/nav/meta) refreshes rarely so it's not re-scrambling under the reader's eyes;
+        // small ambient readouts (kicker/count/footer) stay lively. Each element keeps its own randomized timer.
+        const period = (el: HTMLElement) =>
+          el.matches('.section__title, .section__num, .navlink__t, .section__meta') ? rnd(11000, 20000) : rnd(5000, 9000);
+        const loop = (el: HTMLElement) => setTimeout(() => {
+          if (!document.hidden && seen.get(el)) run(el, 'random');
+          loop(el);
+        }, period(el));
+        periodic.forEach((el, i) => setTimeout(() => loop(el), 1200 + i * 700));
+
+        // hero group entrance decode (fired once when the boot intro resolves)
+        return {
+          hero() {
+            const els = Array.from(document.querySelectorAll('.hero__kicker[data-scramble], .navlink__t, #sig-count')) as HTMLElement[];
+            els.forEach((el, i) => setTimeout(() => run(el, 'random'), 120 + i * 70));
+          },
+        };
+      })();
+
+      /* ---------------- wordmark FX lab — cycle anime.js text treatments on the name (toggle in dev panel) ---------------- */
+      const wordFX = (function () {
+        const host = $('#word');
+        const wordT = $('#word-t');
+        if (!host || !wordT || !A.animate || !A.splitText) return { play: () => '', next: () => '', label: () => '—' };
+        const original = wordT.textContent || '';
+        let splitter: any = null;
+        let running: any[] = [];
+        const reset = () => {
+          running.forEach((a) => { try { a.pause(); } catch (_) {} });
+          running = [];
+          try { splitter && splitter.revert && splitter.revert(); } catch (_) {}
+          splitter = null;
+          wordT.removeAttribute('style');
+          wordT.textContent = original;
+          host.classList.remove('word--circle', 'word--draw');
+        };
+        const split = (charsOpt: any = { class: 'fc' }): HTMLElement[] => {
+          splitter = A.splitText(wordT, { chars: charsOpt, accessible: true });
+          return (splitter.chars || (splitter[1] && splitter[1].chars) || []) as HTMLElement[];
+        };
+        const fx: Record<string, () => void> = {
+          // scrambleText decode — per-char (width-locked so the proportional font can't jitter the line).
+          // NO stagger delay: a delayed char shows its FINAL letter during the wait (leaks the reveal early).
+          // Instead, all letters scramble from t=0 with increasing per-letter durations, so the word resolves
+          // gradually one letter at a time, left→right, and never snaps to the finish.
+          scramble() {
+            const chars = split();
+            chars.forEach((c) => { c.style.width = c.getBoundingClientRect().width + 'px'; c.style.textAlign = 'center'; });
+            chars.forEach((c, i) => {
+              const dur = 300 + i * 50;
+              running.push(A.animate(c, {
+                textContent: A.scrambleText({ chars: 'A-Z0-9', duration: dur, settleDuration: Math.round(dur * 0.82), settleRate: 26 }),
+              }));
+            });
+          },
+          // splitText html-template (wrap:clip) — letters drop into their slots from above
+          drop() {
+            const chars = split({ class: 'fc', wrap: 'clip' });
+            running.push(A.animate(chars, { translateY: ['-100%', '0%'], duration: 520, ease: 'outExpo', delay: A.stagger(40) }));
+          },
+          // splitText html-template (wrap:clip) — letters rise up from behind a mask
+          rise() {
+            const chars = split({ class: 'fc', wrap: 'clip' });
+            running.push(A.animate(chars, { translateY: ['100%', '0%'], opacity: [0, 1], duration: 560, ease: 'outExpo', delay: A.stagger(36) }));
+          },
+          // letters arranged around a continuously rotating ring
+          circle() {
+            host.classList.add('word--circle');
+            const chars = split();
+            const n = chars.length;
+            const R = Math.round(n * 13);
+            wordT.style.position = 'relative';
+            wordT.style.display = 'inline-block';
+            wordT.style.width = wordT.style.height = (R * 2) + 'px';
+            wordT.style.fontSize = '30px';
+            chars.forEach((c, i) => {
+              const deg = (i / n) * 360;
+              c.style.position = 'absolute';
+              c.style.left = '50%';
+              c.style.top = '50%';
+              c.style.margin = '0';
+              c.style.transform = `translate(-50%,-50%) rotate(${deg}deg) translateY(-${R}px)`;
+            });
+            running.push(A.animate(wordT, { rotate: '1turn', loop: true, duration: 18000, ease: 'linear' }));
+          },
+          // createDrawable self-draw: glyph outlines stroke themselves on, then fill (SVG paths from opentype.js)
+          draw() {
+            const tpl = document.getElementById('word-draw-tpl') as HTMLTemplateElement | null;
+            if (!tpl || !A.createDrawable) return;
+            host.classList.add('word--draw');
+            wordT.innerHTML = tpl.innerHTML;
+            const svg = wordT.querySelector('svg') as SVGElement | null;
+            if (!svg) return;
+            const fs = parseFloat(getComputedStyle(host).fontSize) || 80;
+            svg.style.height = (fs * 0.82) + 'px';
+            svg.style.width = 'auto';
+            svg.style.display = 'block';
+            svg.style.overflow = 'visible';
+            const paths = Array.from(wordT.querySelectorAll('path')) as SVGPathElement[];
+            paths.forEach((p) => {
+              p.style.fill = 'var(--ink)'; p.style.fillOpacity = '0';
+              p.style.stroke = 'var(--ink)'; p.style.strokeWidth = '1.4'; (p.style as any).vectorEffect = 'non-scaling-stroke';
+            });
+            const drawables = A.createDrawable(paths as any);
+            running.push(A.animate(drawables, { draw: ['0 0', '0 1'], duration: 1100, delay: A.stagger(70), ease: 'inOutSine' }));
+            paths.forEach((p, i) => running.push(A.animate(p, { fillOpacity: [0, 1], duration: 460, delay: 850 + i * 70, ease: 'outQuad' })));
+          },
+        };
+        const order = ['scramble', 'drop', 'rise', 'circle', 'draw'];
+        let idx = 0;
+        const play = (name?: string) => {
+          if (name && order.indexOf(name) >= 0) idx = order.indexOf(name);
+          reset();
+          if (!reduce) requestAnimationFrame(() => { try { fx[order[idx]](); } catch (_) {} });
+          return order[idx];
+        };
+        const next = () => { idx = (idx + 1) % order.length; return play(); };
+        return { play, next, label: () => order[idx] };
+      })();
+
+      /* ---------------- hero entrance on intro end (wordmark FX runs; kicker/nav/count decode) ---------------- */
+      document.addEventListener('intro:done', () => {
+        if (reduce || !A.animate) return;
+        wordFX.play();
+        A.animate('#tag, #hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
+        setTimeout(() => scramble.hero(), 320);
+      });
+
+      /* ---------------- dynamic CRT: transform-only sync-bar roll + glare drift + rare glitch (no per-frame repaint) ---------------- */
+      if (!reduce && A.animate) {
+        // rolling refresh/sync bar with randomized gaps (no metronome tell) — the only constant motion; transform-only = GPU-cheap
+        const sync = $('#sync');
+        if (sync) {
+          const roll = () => {
+            const h = window.innerHeight;
+            A.animate(sync, { translateY: [-0.2 * h, 1.2 * h], duration: 8200, ease: 'linear',
+              onComplete: () => setTimeout(roll, 2200 + Math.random() * 3500) });
+          };
+          roll();
+        }
+        // drifting glare on the glass — light playing across a curved surface
+        A.animate('#glare', { translateX: [-10, 10], duration: 9000, loop: true, alternate: true, ease: 'inOutSine' });
+        // rare signal glitch (every ~20–45s)
+        const glitch = () => {
+          A.animate('#sync', { translateX: [0, -2, 2, 0], duration: 160, ease: 'linear' });
+          setTimeout(glitch, 20000 + Math.random() * 25000);
+        };
+        setTimeout(glitch, 15000 + Math.random() * 10000);
+      }
+
+      /* ---------------- hero "active signals" radar (mobz/lag-radar, ISC — themed in CSS) ----------------
+         A real sonar sweep whose pace tracks live frame performance. Lifecycle-managed: only runs while the
+         hero is on-screen and the tab is visible, so it never burns rAF in the background. */
+      (function radar() {
+        const mount = $('#hero-radar');
+        if (!mount) return;
+        if (reduce) { mount.classList.add('radar--static'); return; }
+        let inst: (() => void) | null = null;
+        let onScreen = false;
+        const start = () => { if (!inst && onScreen && !document.hidden) inst = lagRadar({ parent: mount, size: 36, inset: 2, frames: 44 }); };
+        const stop = () => { if (inst) { inst(); inst = null; } };
+        new IntersectionObserver((es) => {
+          onScreen = es[0].isIntersecting;
+          onScreen ? start() : stop();
+        }).observe(mount);
+        document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+      })();
+
+      /* ---------------- controls card: pops up on first visit, persistent re-open button, stays until closed ---------------- */
+      (function hud() {
+        const el = $('#hud-controls'), btn = $('#controls-btn');
+        if (!el) return;
+        const touch = window.matchMedia('(pointer: coarse)').matches;
+        const KEY = 'pc.hud.seen';
+        let open = false;
+        const show = () => {
+          if (touch || open) return;
+          el.hidden = false; open = true; btn?.setAttribute('aria-expanded', 'true');
+          if (!reduce && A.animate) A.animate(el, { opacity: [0, 1], translateY: [10, 0], duration: 320, ease: 'outQuad' });
+        };
+        const hide = () => {
+          if (!open) return; open = false; btn?.setAttribute('aria-expanded', 'false');
+          if (!reduce && A.animate) A.animate(el, { opacity: [1, 0], translateY: [0, 8], duration: 240, ease: 'outQuad', onComplete: () => { el.hidden = true; } });
+          else el.hidden = true;
+        };
+        el.querySelector('[data-hud-dismiss]')?.addEventListener('click', hide);
+        btn?.addEventListener('click', () => (open ? hide() : show()));
+        // Esc closes it (only) — does NOT auto-dismiss on scroll/keypress anymore
+        addEventListener('keydown', (e) => { if (open && e.key === 'Escape') hide(); });
+        // first visit only: pop it open after the boot intro resolves
+        document.addEventListener('intro:done', () => {
+          if (touch) return;
+          let seen = false; try { seen = !!localStorage.getItem(KEY); } catch (_) {}
+          if (!seen) setTimeout(() => { show(); try { localStorage.setItem(KEY, '1'); } catch (_) {} }, 900);
+        });
+      })();
+
+      /* ---------------- modals + dev toggles + record player ---------------- */
+      (function ui() {
+        const open = (id: string) => { $(id)?.classList.add('open'); sound.ping(); animateMapPins(); };
+        const closeAll = () => document.querySelectorAll('.modal').forEach((m) => m.classList.remove('open'));
+        document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => open('#' + (b as HTMLElement).dataset.open)));
+        document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeAll));
+        document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) closeAll(); }));
+
+        let pinsArmed = false;
+        function animateMapPins() {
+          if (pinsArmed || reduce || !A.animate) return;
+          pinsArmed = true;
+          A.animate('#worldmap .ring', { scale: [0.5, 1.6], opacity: [0.7, 0], duration: 1800, loop: true, ease: 'outSine', delay: A.stagger(160) });
+        }
+
+        const devBtn = $('#dev-btn'), panel = $('#dev-panel');
+        devBtn?.addEventListener('click', () => panel?.classList.toggle('open'));
+        document.addEventListener('click', (e) => { if (panel?.classList.contains('open') && !(e.target as HTMLElement).closest('#controls')) panel.classList.remove('open'); });
+
+        const bind = (id: string, fn: (on: boolean) => void) => {
+          const cb = $(id) as HTMLInputElement | null;
+          cb?.addEventListener('change', () => fn(cb.checked));
+          if (cb) fn(cb.checked);
+        };
+        bind('#t-sound', (on) => sound.setMuted(!on));
+        bind('#t-crt', (on) => document.body.classList.toggle('no-crt', !on));
+        bind('#t-curve', (on) => document.body.classList.toggle('fx-curve', on));
+
+        // wordmark FX cycler — flip through the anime.js text treatments on the name
+        const fxBtn = $('#fx-cycle') as HTMLButtonElement | null;
+        fxBtn?.addEventListener('click', () => { const name = wordFX.next(); fxBtn.textContent = `name fx · ${name} ↻`; });
+
+        // record player
+        const vinyl = $('#vinyl'), playBtn = $('#rp-play'), now = $('#rp-now'), title = $('#rp-title');
+        const items = Array.from(document.querySelectorAll('#rp-tracks li')) as HTMLElement[];
+        const spin = (vinyl && !reduce && A.animate)
+          ? A.animate(vinyl, { rotate: '1turn', loop: true, duration: 3400, ease: 'linear', autoplay: false }) : null;
+        let playing = false, idx = 0, timer: any = null;
+        const mark = () => {
+          items.forEach((li, i) => li.classList.toggle('now', i === idx));
+          const t = items[idx]?.dataset.title || `Track ${String(idx + 1).padStart(2, '0')}`;
+          if (now) now.textContent = `track ${String(idx + 1).padStart(2, '0')} / ${items.length}`;
+          if (title) title.textContent = t;
+        };
+        playBtn?.addEventListener('click', () => {
+          playing = !playing;
+          spin && (playing ? spin.play() : spin.pause());
+          if (playBtn) playBtn.textContent = playing ? 'pause' : 'play';
+          if (playing) { mark(); timer = setInterval(() => { idx = (idx + 1) % items.length; mark(); }, 4000); }
+          else clearInterval(timer);
+        });
+        items.forEach((li, i) => li.addEventListener('click', () => { idx = i; mark(); }));
+        if (items.length) mark();
+      })();
+    </script>
+  </body>
+</html>

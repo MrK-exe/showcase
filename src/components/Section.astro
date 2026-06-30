@@ -1,0 +1,25 @@
+---
+import Card from './Card.astro';
+
+interface Entry { data: Record<string, any> }
+interface Props { num: string; id: string; title: string; meta?: string; entries: Entry[]; reveal?: string; weight?: string }
+const { num, id, title, meta, entries, reveal = 'rise', weight = 'standard' } = Astro.props;
+---
+<section class={`section section--${weight}`} id={id} data-section>
+  <header class="section__head reveal" data-reveal={reveal}>
+    <span class="section__num" data-scramble="reveal periodic" data-scramble-chars="0-9">{num}</span>
+    <h2 class="section__title" data-scramble="reveal periodic">{title}</h2>
+    {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
+  </header>
+  {entries.length > 0 ? (
+    <div class={`section__grid section__grid--${entries[0]?.data.variant ?? 'wide'}`}>
+      {entries.map((e, i) => (
+        <div class="reveal" data-reveal={reveal} style={`--rev-delay:${i * 70}ms`}>
+          <Card {...(e.data as any)} />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p class="section__empty">No items yet.</p>
+  )}
+</section>

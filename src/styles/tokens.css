@@ -1,0 +1,38 @@
+/* psychic-carnival — design tokens. Single source for color, type, space, motion. */
+:root {
+  /* palette — one accent only */
+  --bone: #F4F2EC;
+  --ink: #141310;
+  --acc: #E5341C;
+  --mut: #7D786C;
+  --line: rgba(20, 19, 16, 0.16);
+  --line-2: rgba(20, 19, 16, 0.30);
+
+  /* type */
+  --font-display: 'Chakra Petch', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* space scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 72px;
+
+  /* radius (squared aesthetic) */
+  --radius: 0px;
+
+  /* motion tokens — route every animation through these */
+  --dur-fast: 160ms;
+  --dur-base: 320ms;
+  --dur-slow: 560ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* layering */
+  --z-nav: 120;
+  --z-overlay: 140;
+  --z-modal: 160;
+  --z-cursor: 300;
+}
