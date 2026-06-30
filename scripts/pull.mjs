@@ -68,10 +68,21 @@ await task(
 // Games last-played — Steam (own key+id) + PSN (npsso). Keys come from the environment / GitHub Secrets.
 await task(
   'lastplayed.json',
-  async () => ({
-    steam: await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4),
-    psn: await pullPsn(process.env.PSN_NPSSO, 4),
-  }),
+  async () => {
+    // isolate PSN so its failure can't wipe Steam, and record a status for diagnosis
+    const steam = await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4);
+    let psn = [];
+    let psnStatus = process.env.PSN_NPSSO ? 'ok' : 'no-npsso';
+    if (process.env.PSN_NPSSO) {
+      try {
+        psn = await pullPsn(process.env.PSN_NPSSO, 4);
+        psnStatus = `got-${psn.length}`;
+      } catch (e) {
+        psnStatus = 'err:' + String(e?.message || e).slice(0, 120);
+      }
+    }
+    return { steam, psn, psnStatus };
+  },
   { steam: [], psn: [] }
 );
 

@@ -114,6 +114,7 @@ const emptyText: Record<string, string> = {
 const enabled = sections.filter((s) => s.enabled);
 ---
 <Experience>
+  <span hidden data-psn={lastPlayed.psnStatus ?? 'n/a'}></span>
   <header class="hero" id="top">
     <p class="hero__kicker" data-scramble="periodic">{site.tagline}</p>
     <h1 class="hero__word" id="word"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>

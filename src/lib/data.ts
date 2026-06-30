@@ -26,7 +26,7 @@ export interface ConnectLink { label: string; href: string }
 
 export const getWriting = () => readJson<{ items: WritingItem[] }>('src/generated/writing.json', { items: [] }).items;
 export const getFilms = () => readJson<{ reviews: FilmReview[]; favorites: FilmFav[] }>('src/generated/films.json', { reviews: [], favorites: [] });
-export const getLastPlayed = () => readJson<{ steam: PlayedGame[]; psn: PlayedGame[] }>('src/generated/lastplayed.json', { steam: [], psn: [] });
+export const getLastPlayed = () => readJson<{ steam: PlayedGame[]; psn: PlayedGame[]; psnStatus?: string }>('src/generated/lastplayed.json', { steam: [], psn: [] });
 export const getMusic = () => readJson<{ tracks: Track[] }>('src/generated/music.json', { tracks: [] }).tracks;
 export const getTopGames = () => readJson<{ games: TopGame[] }>('src/content/settings/top-games.json', { games: [] }).games;
 export const getConnectLinks = (fallback: ConnectLink[]) => readJson<{ links: ConnectLink[] }>('src/content/settings/connect.json', { links: fallback }).links;
