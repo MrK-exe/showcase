@@ -2,31 +2,121 @@
 import Experience from '../layouts/Experience.astro';
 import Section from '../components/Section.astro';
 import RecordPlayer from '../components/RecordPlayer.astro';
-import { sections, site } from '../config/site.config';
+import { sections, site, sources } from '../config/site.config';
 import { getCollection } from 'astro:content';
+import { getWriting, getFilms, getLastPlayed, getTopGames } from '../lib/data';
 
-const enabled = sections.filter((s) => s.enabled);
+const base = import.meta.env.BASE_URL; // '/showcase/'
+const asset = (p?: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
 const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
 
-const resolved = await Promise.all(
-  enabled.map(async (s) => {
-    let entries: { data: Record<string, any> }[] = [];
-    if (s.collection) {
-      const items = await getCollection(s.collection as any);
-      entries = items
-        .sort((a: any, b: any) => (a.data.order ?? 0) - (b.data.order ?? 0))
-        .map((e: any) => ({ data: e.data }));
-    }
-    return { s, entries };
-  })
-);
+// ── authored / uploaded collections (CMS) ──
+const byDateDesc = (a: any, b: any) => +new Date(b.data.date ?? 0) - +new Date(a.data.date ?? 0);
+const workEntries = (await getCollection('work')).sort(byDateDesc);
+const photoEntries = (await getCollection('photos')).sort(byDateDesc);
+const reviewEntries = (await getCollection('gameReviews')).sort(byDateDesc);
+
+// ── fed data (pulled at build) + curated singletons ──
+const writing = getWriting();
+const films = getFilms();
+const lastPlayed = getLastPlayed();
+const topGames = getTopGames();
+
+// Build the card groups for each section id. Every section uses the one Card primitive.
+function groupsFor(id: string) {
+  switch (id) {
+    case 'work':
+      return [{
+        variant: 'row',
+        cards: workEntries.slice(0, 5).map((e) => ({
+          variant: 'row', title: e.data.title, subtitle: e.data.summary, status: e.data.status,
+          date: e.data.date, links: [{ label: 'Open', href: `${base}work/${e.id}` }],
+        })),
+      }];
+    case 'writing':
+      return [{
+        variant: 'wide',
+        cards: writing.slice(0, 4).map((w) => ({
+          variant: 'wide', image: w.image, title: w.title,
+          date: w.date ? new Date(w.date) : undefined,
+          links: [{ label: 'Read on Substack', href: w.link }],
+        })),
+      }];
+    case 'photography':
+      return [{
+        variant: 'photo',
+        cards: photoEntries.slice(0, 4).map((p) => ({
+          variant: 'photo', image: asset(p.data.image), title: p.data.caption ?? '',
+          date: p.data.date, links: p.data.instagramUrl ? [{ label: 'Instagram', href: p.data.instagramUrl }] : [],
+        })),
+      }];
+    case 'films':
+      return [
+        {
+          label: 'Favorites', variant: 'poster',
+          cards: films.favorites.slice(0, 4).map((f) => ({
+            variant: 'poster', image: f.poster, title: f.title, rating: f.rating ?? undefined,
+            links: f.link ? [{ label: 'Letterboxd', href: f.link }] : [],
+          })),
+        },
+        {
+          label: 'Recent reviews', variant: 'poster',
+          cards: films.reviews.slice(0, 4).map((r) => ({
+            variant: 'poster', image: r.poster, title: r.title, subtitle: r.excerpt, rating: r.rating ?? undefined,
+            date: r.watchedDate ? new Date(r.watchedDate) : undefined,
+            links: r.link ? [{ label: 'Letterboxd', href: r.link }] : [],
+          })),
+        },
+      ];
+    case 'games':
+      return [
+        {
+          label: 'Reviews', variant: 'poster',
+          cards: reviewEntries.slice(0, 4).map((g) => ({
+            variant: 'poster', image: asset(g.data.cover), title: g.data.title,
+            subtitle: g.data.excerpt, rating: g.data.rating,
+            links: [{ label: 'Read', href: `${base}games/${g.id}` }],
+          })),
+        },
+        {
+          label: 'Top 4', variant: 'poster',
+          cards: topGames.slice(0, 4).map((g) => ({
+            variant: 'poster', image: asset(g.cover), title: g.title,
+            rating: g.rating != null ? Number(g.rating) : undefined,
+          })),
+        },
+        {
+          label: 'Last played', variant: 'poster',
+          cards: [...lastPlayed.steam, ...lastPlayed.psn].slice(0, 4).map((g) => ({
+            variant: 'poster', image: g.cover, title: g.name,
+            status: g.platform ?? (lastPlayed.steam.includes(g as any) ? 'Steam' : 'PSN'),
+            date: g.lastPlayed ? new Date(g.lastPlayed) : undefined,
+          })),
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
+const viewAll: Record<string, { href: string; label: string }> = {
+  writing: { href: sources.substack, label: 'all on substack' },
+  films: { href: `https://letterboxd.com/${sources.letterboxd}`, label: 'all on letterboxd' },
+};
+const emptyText: Record<string, string> = {
+  work: 'No entries yet.',
+  writing: 'No posts yet.',
+  photography: 'No photos yet.',
+  films: 'No films yet.',
+  games: 'No games yet.',
+};
+
+const enabled = sections.filter((s) => s.enabled);
 ---
 <Experience>
   <header class="hero" id="top">
     <p class="hero__kicker" data-scramble="periodic">{site.tagline}</p>
     <h1 class="hero__word" id="word"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
-    {/* placeholder positioning line — to be replaced with Abdullah's own line (Phase A5) */}
-    <p class="hero__tag" id="tag">Filmmaker, developer &amp; writer.</p>
 
     <nav class="hero__links" id="hero-links" aria-label="Jump to section">
       {enabled.map((s, i) => (
@@ -36,18 +126,27 @@ const resolved = await Promise.all(
       ))}
     </nav>
 
-    <button class="signal" id="hero-signal" data-open="signal-modal" data-mag aria-label="4 active signals">
-      <span class="radar" id="hero-radar" aria-hidden="true"></span>
-      <b class="signal__num" id="sig-count" data-scramble="periodic hover" data-scramble-chars="0-9">4</b>
-    </button>
+    <span class="hero__radar" id="hero-signal" aria-hidden="true">
+      <span class="radar" id="hero-radar"></span>
+    </span>
 
     <p class="hero__hint lab">↓ scroll</p>
   </header>
 
-  {resolved.map(({ s, entries }, i) => {
+  {enabled.map((s, i) => {
     const num = String(i + 1).padStart(2, '0');
-    return s.component === 'RecordPlayer'
-      ? <RecordPlayer num={num} id={s.id} title={s.title} meta={s.meta} weight={s.weight} />
-      : <Section num={num} id={s.id} title={s.title} meta={s.meta} entries={entries} reveal={reveals[i % reveals.length]} weight={s.weight} />;
+    if (s.component === 'RecordPlayer') {
+      return <RecordPlayer num={num} id={s.id} title={s.title} meta={s.meta} weight={s.weight} />;
+    }
+    const va = viewAll[s.id];
+    return (
+      <Section
+        num={num} id={s.id} title={s.title} meta={s.meta} weight={s.weight}
+        reveal={reveals[i % reveals.length]}
+        groups={groupsFor(s.id)}
+        viewAllHref={va?.href} viewAllLabel={va?.label}
+        empty={emptyText[s.id] ?? 'Nothing here yet.'}
+      />
+    );
   })}
 </Experience>

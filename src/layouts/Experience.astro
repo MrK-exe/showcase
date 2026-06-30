@@ -2,22 +2,17 @@
 import '../styles/tokens.css';
 import 'locomotive-scroll/dist/locomotive-scroll.css';
 import '../styles/app.css';
-import { site, links } from '../config/site.config';
+import { site, links as defaultLinks } from '../config/site.config';
 import Nav from '../components/Nav.astro';
 import banner from '../generated/banner.txt?raw';
-import wordmarkSVG from '../generated/wordmark.svg?raw';
+import { getConnectLinks } from '../lib/data';
 
 interface Props { title?: string }
 const { title } = Astro.props;
 const pageTitle = title || `${site.name} — ${site.tagline}`;
-
-// city pins overlaid on the dotted world map (lazy-loaded background)
-const cities = [
-  { name: 'Riyadh', n: 2, x: 60.5, y: 55 },
-  { name: 'London', n: 1, x: 48.5, y: 38 },
-  { name: 'New York', n: 1, x: 27, y: 44 },
-  { name: 'Tokyo', n: 1, x: 86, y: 46 },
-];
+// Connect links: CMS singleton if present, else the defaults in site.config.
+const links = getConnectLinks(defaultLinks);
+const year = new Date().getFullYear();
 ---
 <!doctype html>
 <html lang="en">
@@ -47,9 +42,6 @@ const cities = [
     <!-- rolling refresh/sync bar — the "alive" CRT signature (scanlines toggle) -->
     <div id="sync"></div>
 
-    <!-- wordmark glyph outlines for the createDrawable FX (generated from Chakra Petch via opentype.js) -->
-    <template id="word-draw-tpl" set:html={wordmarkSVG}></template>
-
     <Nav />
 
     <div id="controls">
@@ -60,7 +52,6 @@ const cities = [
           <label class="tog" data-mag><input type="checkbox" id="t-sound" checked /><span class="box"></span><span>sound</span></label>
           <label class="tog" data-mag><input type="checkbox" id="t-crt" checked /><span class="box"></span><span>scanlines</span></label>
           <label class="tog" data-mag><input type="checkbox" id="t-curve" checked /><span class="box"></span><span>curvature</span></label>
-          <button class="fxbtn" id="fx-cycle" data-mag type="button">name fx · scramble ↻</button>
         </div>
       </div>
     </div>
@@ -68,7 +59,7 @@ const cities = [
     <div id="page">
       <div id="crt"></div>
       <main><slot /></main>
-      <footer class="foot">© 2026 {site.name} · <span class="foot__sys" data-scramble="periodic hover">sys·{site.codename}</span> · {site.url.replace('https://', '')} · built with Astro</footer>
+      <footer class="foot">© {year} {site.name} · <span class="foot__sys" data-scramble="periodic hover">sys·{site.codename}</span> · {site.url.replace('https://', '')} · built with Astro</footer>
     </div>
 
     <!-- persistent controls button + first-open controls card -->
@@ -90,22 +81,6 @@ const cities = [
       </div>
     </div>
 
-    <!-- signal modal: dotted world map (no jump links) -->
-    <div class="modal" id="signal-modal">
-      <div class="sheet">
-        <h3>Active signals <button class="xbtn" data-close data-mag>✕</button></h3>
-        <div class="lab"><span class="acc">●</span> <span id="sig-count-modal">4</span> active now</div>
-        <div class="worldmap" id="worldmap">
-          {cities.map((c) => (
-            <div class="wd" style={`left:${c.x}%;top:${c.y}%`}>
-              <span class="ring"></span>
-              <span class="cty">{c.name}</span><span class="cnt">{c.n}</span>
-            </div>
-          ))}
-        </div>
-        <p class="lab maphint">live visitor map · approximate region</p>
-      </div>
-    </div>
 
     <script>
       import * as A from 'animejs';
@@ -399,13 +374,24 @@ const cities = [
           if (busy.has(el)) return;
           busy.add(el);
           const len = (el.textContent || '').length || 6;
+          // freeze the element's footprint so random glyph widths can't reflow/resize anything.
+          // clip-path (not overflow:hidden) clips horizontal spill without breaking the baseline.
+          const prevStyle = el.getAttribute('style');
+          const w = el.offsetWidth; // layout width — transform-independent (reveal/parallax safe)
+          el.style.display = 'inline-block';
+          // pin all three + flex:none — a flex item's min-width:auto would otherwise let wide glyphs grow it
+          el.style.width = el.style.minWidth = el.style.maxWidth = `${w}px`;
+          el.style.flex = 'none';
+          el.style.whiteSpace = 'nowrap';
+          el.style.clipPath = 'inset(-50% 0px)';
+          const unlock = () => { if (prevStyle === null) el.removeAttribute('style'); else el.setAttribute('style', prevStyle); };
           A.animate(el, {
             textContent: A.scrambleText({
               chars: el.dataset.scrambleChars || 'A-Z0-9!%#',
               from, ease: 'inOutQuad', revealRate: 46, cursor: '_', settleDuration: 420,
               duration: Math.min(1400, 360 + len * 44),
             }),
-            onComplete: () => busy.delete(el),
+            onComplete: () => { unlock(); busy.delete(el); },
           });
         };
 
@@ -442,17 +428,20 @@ const cities = [
         // hero group entrance decode (fired once when the boot intro resolves)
         return {
           hero() {
-            const els = Array.from(document.querySelectorAll('.hero__kicker[data-scramble], .navlink__t, #sig-count')) as HTMLElement[];
+            const els = Array.from(document.querySelectorAll('.hero__kicker[data-scramble], .navlink__t')) as HTMLElement[];
             els.forEach((el, i) => setTimeout(() => run(el, 'random'), 120 + i * 70));
           },
         };
       })();
 
-      /* ---------------- wordmark FX lab — cycle anime.js text treatments on the name (toggle in dev panel) ---------------- */
-      const wordFX = (function () {
-        const host = $('#word');
+      /* ---------------- wordmark decode — scrambleText on the name (the single locked treatment) ----------------
+         Per-char, width-locked so the proportional display font can't jitter the line. NO stagger delay:
+         a delayed char shows its FINAL letter during the wait (leaks the reveal early). Instead every letter
+         scrambles from t=0 with increasing per-letter durations, so the word resolves left→right, one letter
+         at a time, and never snaps to the finish. */
+      const wordmark = (function () {
         const wordT = $('#word-t');
-        if (!host || !wordT || !A.animate || !A.splitText) return { play: () => '', next: () => '', label: () => '—' };
+        if (!wordT || !A.animate || !A.splitText || !A.scrambleText) return { play() {} };
         const original = wordT.textContent || '';
         let splitter: any = null;
         let running: any[] = [];
@@ -463,19 +452,13 @@ const cities = [
           splitter = null;
           wordT.removeAttribute('style');
           wordT.textContent = original;
-          host.classList.remove('word--circle', 'word--draw');
         };
-        const split = (charsOpt: any = { class: 'fc' }): HTMLElement[] => {
-          splitter = A.splitText(wordT, { chars: charsOpt, accessible: true });
-          return (splitter.chars || (splitter[1] && splitter[1].chars) || []) as HTMLElement[];
-        };
-        const fx: Record<string, () => void> = {
-          // scrambleText decode — per-char (width-locked so the proportional font can't jitter the line).
-          // NO stagger delay: a delayed char shows its FINAL letter during the wait (leaks the reveal early).
-          // Instead, all letters scramble from t=0 with increasing per-letter durations, so the word resolves
-          // gradually one letter at a time, left→right, and never snaps to the finish.
-          scramble() {
-            const chars = split();
+        const play = () => {
+          reset();
+          if (reduce) return;
+          requestAnimationFrame(() => {
+            splitter = A.splitText(wordT, { chars: { class: 'fc' }, accessible: true });
+            const chars = (splitter.chars || (splitter[1] && splitter[1].chars) || []) as HTMLElement[];
             chars.forEach((c) => { c.style.width = c.getBoundingClientRect().width + 'px'; c.style.textAlign = 'center'; });
             chars.forEach((c, i) => {
               const dur = 300 + i * 50;
@@ -483,77 +466,16 @@ const cities = [
                 textContent: A.scrambleText({ chars: 'A-Z0-9', duration: dur, settleDuration: Math.round(dur * 0.82), settleRate: 26 }),
               }));
             });
-          },
-          // splitText html-template (wrap:clip) — letters drop into their slots from above
-          drop() {
-            const chars = split({ class: 'fc', wrap: 'clip' });
-            running.push(A.animate(chars, { translateY: ['-100%', '0%'], duration: 520, ease: 'outExpo', delay: A.stagger(40) }));
-          },
-          // splitText html-template (wrap:clip) — letters rise up from behind a mask
-          rise() {
-            const chars = split({ class: 'fc', wrap: 'clip' });
-            running.push(A.animate(chars, { translateY: ['100%', '0%'], opacity: [0, 1], duration: 560, ease: 'outExpo', delay: A.stagger(36) }));
-          },
-          // letters arranged around a continuously rotating ring
-          circle() {
-            host.classList.add('word--circle');
-            const chars = split();
-            const n = chars.length;
-            const R = Math.round(n * 13);
-            wordT.style.position = 'relative';
-            wordT.style.display = 'inline-block';
-            wordT.style.width = wordT.style.height = (R * 2) + 'px';
-            wordT.style.fontSize = '30px';
-            chars.forEach((c, i) => {
-              const deg = (i / n) * 360;
-              c.style.position = 'absolute';
-              c.style.left = '50%';
-              c.style.top = '50%';
-              c.style.margin = '0';
-              c.style.transform = `translate(-50%,-50%) rotate(${deg}deg) translateY(-${R}px)`;
-            });
-            running.push(A.animate(wordT, { rotate: '1turn', loop: true, duration: 18000, ease: 'linear' }));
-          },
-          // createDrawable self-draw: glyph outlines stroke themselves on, then fill (SVG paths from opentype.js)
-          draw() {
-            const tpl = document.getElementById('word-draw-tpl') as HTMLTemplateElement | null;
-            if (!tpl || !A.createDrawable) return;
-            host.classList.add('word--draw');
-            wordT.innerHTML = tpl.innerHTML;
-            const svg = wordT.querySelector('svg') as SVGElement | null;
-            if (!svg) return;
-            const fs = parseFloat(getComputedStyle(host).fontSize) || 80;
-            svg.style.height = (fs * 0.82) + 'px';
-            svg.style.width = 'auto';
-            svg.style.display = 'block';
-            svg.style.overflow = 'visible';
-            const paths = Array.from(wordT.querySelectorAll('path')) as SVGPathElement[];
-            paths.forEach((p) => {
-              p.style.fill = 'var(--ink)'; p.style.fillOpacity = '0';
-              p.style.stroke = 'var(--ink)'; p.style.strokeWidth = '1.4'; (p.style as any).vectorEffect = 'non-scaling-stroke';
-            });
-            const drawables = A.createDrawable(paths as any);
-            running.push(A.animate(drawables, { draw: ['0 0', '0 1'], duration: 1100, delay: A.stagger(70), ease: 'inOutSine' }));
-            paths.forEach((p, i) => running.push(A.animate(p, { fillOpacity: [0, 1], duration: 460, delay: 850 + i * 70, ease: 'outQuad' })));
-          },
+          });
         };
-        const order = ['scramble', 'drop', 'rise', 'circle', 'draw'];
-        let idx = 0;
-        const play = (name?: string) => {
-          if (name && order.indexOf(name) >= 0) idx = order.indexOf(name);
-          reset();
-          if (!reduce) requestAnimationFrame(() => { try { fx[order[idx]](); } catch (_) {} });
-          return order[idx];
-        };
-        const next = () => { idx = (idx + 1) % order.length; return play(); };
-        return { play, next, label: () => order[idx] };
+        return { play };
       })();
 
-      /* ---------------- hero entrance on intro end (wordmark FX runs; kicker/nav/count decode) ---------------- */
+      /* ---------------- hero entrance on intro end (wordmark decodes; kicker/nav/count decode) ---------------- */
       document.addEventListener('intro:done', () => {
         if (reduce || !A.animate) return;
-        wordFX.play();
-        A.animate('#tag, #hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
+        wordmark.play();
+        A.animate('#hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
         setTimeout(() => scramble.hero(), 320);
       });
 
@@ -628,18 +550,11 @@ const cities = [
 
       /* ---------------- modals + dev toggles + record player ---------------- */
       (function ui() {
-        const open = (id: string) => { $(id)?.classList.add('open'); sound.ping(); animateMapPins(); };
+        const open = (id: string) => { $(id)?.classList.add('open'); sound.ping(); };
         const closeAll = () => document.querySelectorAll('.modal').forEach((m) => m.classList.remove('open'));
         document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => open('#' + (b as HTMLElement).dataset.open)));
         document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeAll));
         document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) closeAll(); }));
-
-        let pinsArmed = false;
-        function animateMapPins() {
-          if (pinsArmed || reduce || !A.animate) return;
-          pinsArmed = true;
-          A.animate('#worldmap .ring', { scale: [0.5, 1.6], opacity: [0.7, 0], duration: 1800, loop: true, ease: 'outSine', delay: A.stagger(160) });
-        }
 
         const devBtn = $('#dev-btn'), panel = $('#dev-panel');
         devBtn?.addEventListener('click', () => panel?.classList.toggle('open'));
@@ -654,31 +569,41 @@ const cities = [
         bind('#t-crt', (on) => document.body.classList.toggle('no-crt', !on));
         bind('#t-curve', (on) => document.body.classList.toggle('fx-curve', on));
 
-        // wordmark FX cycler — flip through the anime.js text treatments on the name
-        const fxBtn = $('#fx-cycle') as HTMLButtonElement | null;
-        fxBtn?.addEventListener('click', () => { const name = wordFX.next(); fxBtn.textContent = `name fx · ${name} ↻`; });
-
-        // record player
-        const vinyl = $('#vinyl'), playBtn = $('#rp-play'), now = $('#rp-now'), title = $('#rp-title');
+        // record player — plays the real 30-sec preview; the vinyl spins while audio plays
+        const vinyl = $('#vinyl'), playBtn = $('#rp-play'), now = $('#rp-now');
+        const titleEl = $('#rp-title'), artistEl = $('#rp-artist'), artEl = $('#rp-art');
+        const openEl = $('#rp-open') as HTMLAnchorElement | null;
+        const audio = $('#rp-audio') as HTMLAudioElement | null;
         const items = Array.from(document.querySelectorAll('#rp-tracks li')) as HTMLElement[];
         const spin = (vinyl && !reduce && A.animate)
           ? A.animate(vinyl, { rotate: '1turn', loop: true, duration: 3400, ease: 'linear', autoplay: false }) : null;
-        let playing = false, idx = 0, timer: any = null;
-        const mark = () => {
-          items.forEach((li, i) => li.classList.toggle('now', i === idx));
-          const t = items[idx]?.dataset.title || `Track ${String(idx + 1).padStart(2, '0')}`;
+        let idx = 0;
+        const load = (i: number, autoplay = false) => {
+          idx = (i + items.length) % items.length;
+          const d = items[idx]?.dataset || {};
+          items.forEach((li, k) => li.classList.toggle('now', k === idx));
+          if (titleEl) titleEl.textContent = d.title || '';
+          if (artistEl) artistEl.textContent = d.artist || '';
+          if (artEl) artEl.style.backgroundImage = d.art ? `url(${d.art})` : '';
+          if (openEl && d.spotify) openEl.href = d.spotify;
           if (now) now.textContent = `track ${String(idx + 1).padStart(2, '0')} / ${items.length}`;
-          if (title) title.textContent = t;
+          if (audio) { audio.src = d.preview || ''; if (autoplay && d.preview) audio.play().catch(() => {}); }
         };
-        playBtn?.addEventListener('click', () => {
-          playing = !playing;
-          spin && (playing ? spin.play() : spin.pause());
-          if (playBtn) playBtn.textContent = playing ? 'pause' : 'play';
-          if (playing) { mark(); timer = setInterval(() => { idx = (idx + 1) % items.length; mark(); }, 4000); }
-          else clearInterval(timer);
-        });
-        items.forEach((li, i) => li.addEventListener('click', () => { idx = i; mark(); }));
-        if (items.length) mark();
+        const setPlaying = (on: boolean) => {
+          if (playBtn) playBtn.textContent = on ? 'pause' : 'play';
+          spin && (on ? spin.play() : spin.pause());
+        };
+        if (audio) {
+          playBtn?.addEventListener('click', () => {
+            if (audio.paused) { if (!audio.src) load(idx); audio.play().catch(() => {}); }
+            else audio.pause();
+          });
+          audio.addEventListener('play', () => setPlaying(true));
+          audio.addEventListener('pause', () => setPlaying(false));
+          audio.addEventListener('ended', () => load(idx + 1, true)); // roll through the playlist
+        }
+        items.forEach((li, i) => li.addEventListener('click', () => load(i, true)));
+        if (items.length) load(0);
       })();
     </script>
   </body>

@@ -1,11 +1,9 @@
 ---
+import { getMusic } from '../lib/data';
 interface Props { num: string; id: string; title: string; meta?: string; weight?: string }
 const { num, id, title, meta, weight = 'compact' } = Astro.props;
-// placeholder tracklist — replaced by real playlist data later
-const tracks = [
-  'Untitled I', 'Nightdrive', 'Carrier Signal', 'Low Orbit', 'Paper Streets',
-  'Dust & Static', 'Afterimage', 'Cassette Sun', 'Margins', 'Outlands',
-];
+const tracks = getMusic();
+const first = tracks[0];
 ---
 <section class={`section section--${weight}`} id={id} data-section>
   <header class="section__head reveal" data-reveal="flick">
@@ -14,28 +12,44 @@ const tracks = [
     {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
   </header>
 
-  <div class="rp reveal" data-reveal="rise">
-    <div class="rp__deck">
-      <div class="rp__vinyl" id="vinyl">
-        <span class="rp__art" id="rp-art" aria-hidden="true"></span>
-        <span class="rp__hole"></span>
+  {tracks.length > 0 ? (
+    <div class="rp reveal" data-reveal="rise">
+      <div class="rp__deck">
+        <div class="rp__vinyl" id="vinyl">
+          <span class="rp__art" id="rp-art" style={first?.art ? `background-image:url(${first.art})` : undefined}></span>
+          <span class="rp__hole"></span>
+        </div>
+        <div class="rp__meta">
+          <p class="rp__title" id="rp-title">{first?.title}</p>
+          <p class="rp__artist lab" id="rp-artist">{first?.artist}</p>
+        </div>
       </div>
-      <p class="rp__title" id="rp-title">{tracks[0]}</p>
-    </div>
 
-    <div class="rp__panel">
-      <div class="rp__controls">
-        <button class="btn rp__btn" id="rp-play" data-mag>play</button>
-        <span class="rp__now lab" id="rp-now">track 01 / {tracks.length}</span>
+      <div class="rp__panel">
+        <div class="rp__controls">
+          <button class="btn rp__btn" id="rp-play" data-mag>play</button>
+          <span class="rp__now lab" id="rp-now">track 01 / {tracks.length}</span>
+          <a class="rp__open lab" id="rp-open" href={first?.spotifyUrl} data-mag target="_blank" rel="noopener">spotify ↗</a>
+        </div>
+        <ol class="rp__tracks" id="rp-tracks">
+          {tracks.map((t, i) => (
+            <li
+              data-track={i}
+              data-title={t.title}
+              data-artist={t.artist}
+              data-art={t.art ?? ''}
+              data-preview={t.preview ?? ''}
+              data-spotify={t.spotifyUrl}
+            >
+              <span>{String(i + 1).padStart(2, '0')} · {t.title}</span>
+              <span class="lab">{t.preview ? '0:30' : 'spotify'}</span>
+            </li>
+          ))}
+        </ol>
+        <audio id="rp-audio" preload="none"></audio>
       </div>
-      <ol class="rp__tracks" id="rp-tracks">
-        {tracks.map((t, i) => (
-          <li data-track={i} data-title={t}>
-            <span>{String(i + 1).padStart(2, '0')} · {t}</span><span class="lab">0:30</span>
-          </li>
-        ))}
-      </ol>
-      <div class="rp__embed">spotify playlist embed (placeholder)</div>
     </div>
-  </div>
+  ) : (
+    <p class="section__empty">No tracks yet.</p>
+  )}
 </section>

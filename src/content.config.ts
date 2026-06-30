@@ -1,35 +1,44 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-// One shared "card" schema. Every section's items are cards driven by this data.
-const cardSchema = z.object({
-  title: z.string(),
-  kicker: z.string().optional(),
-  subtitle: z.string().optional(),
-  body: z.string().optional(),
-  date: z.coerce.date().optional(),
-  tags: z.array(z.string()).default([]),
-  rating: z.number().min(0).max(5).optional(),
-  status: z.string().optional(),
-  variant: z.enum(['poster', 'wide', 'square', 'photo', 'row']).default('wide'),
-  progress: z
-    .object({ show: z.boolean().default(false), value: z.number().min(0).max(100).default(0) })
-    .optional(),
-  image: z.string().optional(),
-  links: z.array(z.object({ label: z.string(), href: z.string() })).default([]),
-  order: z.number().default(0),
+/* Astro-side schemas for the file-backed collections authored/uploaded in Keystatic.
+   Curated singletons (film favorites, top games, music, connect) and fed data (writing,
+   latest films, last-played games) are read elsewhere — not Astro content collections. */
+
+// Authored dev-log entries (markdoc body → outline/TOC + dedicated page).
+const work = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdoc}', base: './src/content/work' }),
+  schema: z.object({
+    title: z.string(),
+    date: z.coerce.date().optional(),
+    status: z.string().optional(),
+    summary: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+  }),
 });
 
-const mk = (dir: string) =>
-  defineCollection({
-    loader: glob({ pattern: '**/*.{md,mdoc}', base: `./src/content/${dir}` }),
-    schema: cardSchema,
-  });
+// Authored game reviews (markdoc body + dedicated page).
+const gameReviews = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdoc}', base: './src/content/game-reviews' }),
+  schema: z.object({
+    title: z.string(),
+    date: z.coerce.date().optional(),
+    rating: z.coerce.number().min(0).max(5).optional(),
+    cover: z.string().optional(),
+    excerpt: z.string().optional(),
+  }),
+});
 
-export const collections = {
-  work: mk('work'),
-  films: mk('films'),
-  games: mk('games'),
-  writing: mk('writing'),
-  photos: mk('photos'),
-};
+// Uploaded photos (data-only yaml: image + caption + date + Instagram link).
+const photos = defineCollection({
+  loader: glob({ pattern: '**/*.{yaml,yml,json}', base: './src/content/photos' }),
+  schema: z.object({
+    name: z.string().optional(),
+    image: z.string(),
+    caption: z.string().optional(),
+    date: z.coerce.date().optional(),
+    instagramUrl: z.string().optional(),
+  }),
+});
+
+export const collections = { work, gameReviews, photos };

@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "pull": "node scripts/pull.mjs",
+    "predev": "node scripts/pull.mjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/pull.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
@@ -25,9 +28,9 @@
   "devDependencies": {
     "@fontsource/chakra-petch": "^5.2.7",
     "cross-env": "^10.1.0",
-    "dotted-map": "^3.1.0",
     "figlet": "^1.11.0",
-    "opentype.js": "^2.0.0",
+    "psn-api": "^2.18.0",
+    "rss-parser": "^3.13.0",
     "typescript": "^5.6.3"
   }
 }

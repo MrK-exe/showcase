@@ -50,17 +50,6 @@ html.lenis, html.lenis body { height: auto; }
 #word-t { display: inline-block; }
 /* anime.js splitText chars — inline-block so each letter's box width can be locked during the scramble decode */
 #word-t .fc { display: inline-block; }
-/* circle fx: name becomes a rotating ring; the accent period is out of place there */
-.word--circle { line-height: 1; }
-.word--circle .hl { display: none; }
-/* draw fx: name becomes self-drawing glyph outlines (createDrawable); period hidden during it */
-.word--draw .hl { display: none; }
-.word--draw #word-t { display: inline-block; }
-.word-draw path { fill: var(--ink); }
-/* wordmark FX cycler (dev panel) */
-.fxbtn { display: block; width: 100%; margin-top: 8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); padding: 6px 8px; text-align: left; transition: border-color var(--dur-fast), color var(--dur-fast); }
-.fxbtn:hover, .fxbtn:focus-visible { border-color: var(--acc); color: var(--acc); }
-.hero__tag { color: var(--mut); margin: 10px 0 0; }
 
 /* clickable section links under the title — persistent affordance:
    ink text (out of caption-muted color) + a PERSISTENT hairline underline + a functional vermilion
@@ -70,10 +59,8 @@ html.lenis, html.lenis body { height: auto; }
 .hero__links a .hl-num { font-size: 9px; font-weight: 700; color: var(--acc); letter-spacing: 0; }
 .hero__links a:hover, .hero__links a:focus-visible { color: var(--acc); border-bottom-color: var(--acc); }
 
-/* signals widget — a small sweeping radar + the live count (no label) */
-.signal { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; margin: 26px 0 0; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); padding: 8px 14px; transition: border-color var(--dur-fast); }
-.signal:hover, .signal:focus-visible { border-color: var(--acc); }
-.signal__num { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink); }
+/* ambient radar in the hero — a real frame-performance sweep, no label or fake count */
+.hero__radar { display: inline-flex; align-self: flex-start; margin: 26px 0 0; }
 /* radar = mount for vendored mobz/lag-radar (ISC); palette forced to mono ink + one vermilion sweep */
 .radar { position: relative; width: 36px; height: 36px; flex: none; display: grid; place-items: center; }
 .radar .lagRadar { display: block; }
@@ -96,6 +83,11 @@ html.lenis, html.lenis body { height: auto; }
 .section__grid--photo { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .section__grid--row { display: block; }
 .section__empty { font-family: var(--font-mono); font-size: 12px; color: var(--mut); }
+.section__all { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); transition: color var(--dur-fast), border-color var(--dur-fast); }
+.section__all:hover, .section__all:focus-visible { color: var(--acc); border-color: var(--acc); }
+/* grouped sub-lists within a section (favorites / recent / last played) */
+.section__group + .section__group { margin-top: var(--space-4); }
+.section__grouplabel { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 
 /* IA weighting — production (Work/Writing/Photography) leads, consumption (Films/Games/Music) compacts */
 .section--lead .section__head { border-top-width: 3px; }
@@ -226,33 +218,25 @@ body.no-crt #sync { display: none; }
 .linklist a { border: 1.5px solid var(--ink); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; transition: background var(--dur-fast), color var(--dur-fast); }
 .linklist a:hover { background: var(--ink); color: var(--bone); }
 
-/* dotted world map (background lazy-loaded only when modal opens) */
-.worldmap { position: relative; height: 300px; border: 1.5px solid var(--ink); margin-top: 12px; overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(20,19,16,0.05) 100%),
-    var(--bone) url(/showcase/worldmap.svg) center / contain no-repeat; }
-.wd { position: absolute; width: 9px; height: 9px; transform: translate(-50%, -50%); }
-.wd::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 2px var(--bone); }
-.wd .ring { position: absolute; inset: -5px; border-radius: 50%; border: 1.5px solid var(--acc); opacity: 0; }
-.wd .cty { position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 1px; white-space: nowrap; color: var(--ink); text-shadow: 0 0 2px var(--bone), 0 0 2px var(--bone), 0 1px 0 var(--bone); }
-.wd .cnt { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; color: var(--acc); text-shadow: 0 0 2px var(--bone), 0 0 2px var(--bone); }
-.maphint { margin-top: 10px; }
-
 /* ---------- record player ---------- */
 .rp { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
 .rp__deck { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: none; }
 .rp__vinyl { width: 150px; height: 150px; border-radius: 50%; position: relative; will-change: transform; background: repeating-radial-gradient(circle, #1a1714 0 2px, #0a0908 2px 4px); box-shadow: 0 6px 20px rgba(10,9,8,0.25); }
-.rp__art { position: absolute; inset: 42px; border-radius: 50%; overflow: hidden; background: var(--acc); background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.20) 0 6px, transparent 6px 12px); }
+.rp__art { position: absolute; inset: 42px; border-radius: 50%; overflow: hidden; background: var(--acc); background-size: cover; background-position: center; }
 .rp__hole { position: absolute; inset: 69px; border-radius: 50%; background: var(--bone); border: 1px solid #0a0908; }
-.rp__title { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0; text-align: center; max-width: 170px; }
+.rp__meta { text-align: center; }
+.rp__title { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0; max-width: 170px; }
+.rp__artist { margin: 2px 0 0; font-size: 11px; color: var(--mut); }
 .rp__panel { min-width: 240px; flex: 1; }
 .rp__controls { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .rp__btn { width: 84px; }   /* fixed so play/pause never resizes */
+.rp__open { margin-left: auto; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+.rp__open:hover, .rp__open:focus-visible { color: var(--acc); border-color: var(--acc); }
 .rp__tracks { list-style: none; margin: 0; padding: 0; font-size: 13px; }
-.rp__tracks li { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--line); color: var(--mut); }
+.rp__tracks li { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--line); color: var(--mut); cursor: pointer; }
+.rp__tracks li:hover { color: var(--ink); }
 .rp__tracks li.now { color: var(--ink); }
 .rp__tracks li.now span:first-child::before { content: '▸ '; color: var(--acc); }
-.rp__embed { border: 1.5px solid var(--ink); height: 76px; display: flex; align-items: center; justify-content: center; color: var(--mut); font-size: 11px; letter-spacing: 1px; margin-top: 14px; }
 
 /* ---------- footer ---------- */
 .foot { max-width: 1040px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-6); font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); text-transform: uppercase; }

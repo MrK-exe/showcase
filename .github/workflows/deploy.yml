@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 6 * * *'   # daily — re-pull Letterboxd / Steam / PSN / Substack and redeploy
   workflow_dispatch:
 
 permissions:
@@ -27,6 +29,9 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Build
         run: npm run build
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          PSN_NPSSO: ${{ secrets.PSN_NPSSO }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

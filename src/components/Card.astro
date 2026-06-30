@@ -21,8 +21,11 @@ const {
 const ratio: Record<string, string> = {
   poster: '2 / 3', wide: '16 / 9', square: '1 / 1', photo: '3 / 2', row: '',
 };
-const r = rating != null ? Math.round(rating) : null;
-const stars = r != null ? '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) : null;
+// half-star aware: 2.5 → ★★½☆☆ (never rounds up)
+const rated = rating != null && rating > 0;
+const full = rated ? Math.floor(rating) : 0;
+const half = rated && rating - full >= 0.5 ? 1 : 0;
+const stars = rated ? '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - half)) : null;
 const dateStr = date
   ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short' }).format(date)
   : null;
@@ -39,7 +42,7 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
     {kicker && <p class="card__kicker">{kicker}</p>}
     <h3 class="card__title">{title}</h3>
     {subtitle && <p class="card__sub">{subtitle}</p>}
-    {stars && <p class="card__rating" aria-label={`${r} out of 5`}>{stars}</p>}
+    {stars && <p class="card__rating" aria-label={`${rating} out of 5`}>{stars}</p>}
     {progress?.show && (
       <div class="card__bar" role="progressbar" aria-valuenow={progress.value} aria-valuemin={0} aria-valuemax={100}>
         <i style={`width:${progress.value}%`}></i>

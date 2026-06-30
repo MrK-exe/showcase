@@ -1,12 +1,15 @@
 // Single source for site identity + section registry.
 // Adding/reordering/enabling a section is a config change here — never a code change in pages.
 
-export type CollectionKey = 'work' | 'films' | 'games' | 'writing' | 'photos';
+export type CollectionKey = 'work' | 'gameReviews' | 'photos';
 export type SectionWeight = 'lead' | 'standard' | 'compact';
+// how a section gets its content: authored in the CMS, uploaded, pulled at build, or a custom component
+export type SectionKind = 'authored' | 'uploaded' | 'fed' | 'component';
 
 export interface SectionDef {
   id: string;
   title: string;
+  kind: SectionKind;
   collection?: CollectionKey;
   component?: string;
   meta?: string;
@@ -25,26 +28,25 @@ export const site = {
   tagline: 'filmmaker · developer · writer',
 };
 
-// NOTE: full re-rank (CV · Email · LinkedIn · GitHub first) + real URLs for the
-// '#' placeholders happens in Phase B once the CV + those links are provided.
+// Public source handles live in a plain .mjs so the Node build script can share them.
+export { sources } from './sources.mjs';
+
+// Default Connect links. The admin `connect` singleton overrides this when present.
 export const links = [
+  { label: 'Email', href: 'mailto:abdullahk.aletai@gmail.com' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/abdullah-aletai' },
   { label: 'GitHub', href: 'https://github.com/MrK-exe' },
-  { label: 'Steam', href: '#' },
-  { label: 'Letterboxd', href: 'https://letterboxd.com/abdullahVEVO' },
   { label: 'Substack', href: 'https://abdullahaletai.substack.com' },
+  { label: 'Letterboxd', href: 'https://letterboxd.com/abdullahVEVO' },
   { label: 'Instagram · archive', href: 'https://instagram.com/AbdullahsArchive' },
-  { label: 'Instagram · main', href: '#' },
-  { label: 'WhatsApp', href: '#' },
-  { label: 'Email', href: 'mailto:abdullahk.aletai@gmail.com' },
 ];
 
 // Production sections lead (weight), consumption sections compact. Order = visual order.
 export const sections: SectionDef[] = [
-  { id: 'work', title: 'Work', collection: 'work', meta: 'selected + pipeline', enabled: true, weight: 'lead' },
-  { id: 'writing', title: 'Writing', collection: 'writing', meta: 'substack', enabled: true, weight: 'standard' },
-  { id: 'photography', title: 'Photography', collection: 'photos', meta: '@AbdullahsArchive', enabled: true, weight: 'standard' },
-  { id: 'films', title: 'Films', collection: 'films', meta: 'letterboxd · @abdullahVEVO', enabled: true, weight: 'compact' },
-  { id: 'games', title: 'Games', collection: 'games', meta: 'steam + playstation', enabled: true, weight: 'compact' },
-  { id: 'music', title: 'Music', component: 'RecordPlayer', meta: 'record player', enabled: true, weight: 'compact' },
+  { id: 'work', title: 'Work', kind: 'authored', collection: 'work', meta: 'dev log', enabled: true, weight: 'lead' },
+  { id: 'writing', title: 'Writing', kind: 'fed', meta: 'substack', enabled: true, weight: 'standard' },
+  { id: 'photography', title: 'Photography', kind: 'uploaded', collection: 'photos', meta: '@AbdullahsArchive', enabled: true, weight: 'standard' },
+  { id: 'films', title: 'Films', kind: 'fed', meta: 'letterboxd · @abdullahVEVO', enabled: true, weight: 'compact' },
+  { id: 'games', title: 'Games', kind: 'authored', collection: 'gameReviews', meta: 'reviews · steam + playstation', enabled: true, weight: 'compact' },
+  { id: 'music', title: 'Music', kind: 'component', component: 'RecordPlayer', meta: 'record player', enabled: true, weight: 'compact' },
 ];

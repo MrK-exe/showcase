@@ -1,25 +1,45 @@
 ---
 import Card from './Card.astro';
 
-interface Entry { data: Record<string, any> }
-interface Props { num: string; id: string; title: string; meta?: string; entries: Entry[]; reveal?: string; weight?: string }
-const { num, id, title, meta, entries, reveal = 'rise', weight = 'standard' } = Astro.props;
+interface Group { label?: string; variant?: string; cards: Record<string, any>[] }
+interface Props {
+  num: string; id: string; title: string; meta?: string;
+  weight?: string; reveal?: string;
+  groups?: Group[];
+  viewAllHref?: string; viewAllLabel?: string;
+  empty?: string;
+}
+const {
+  num, id, title, meta, weight = 'standard', reveal = 'rise',
+  groups = [], viewAllHref, viewAllLabel = 'view all', empty = 'Nothing here yet.',
+} = Astro.props;
+
+const hasItems = groups.some((g) => g.cards.length > 0);
 ---
 <section class={`section section--${weight}`} id={id} data-section>
   <header class="section__head reveal" data-reveal={reveal}>
     <span class="section__num" data-scramble="reveal periodic" data-scramble-chars="0-9">{num}</span>
     <h2 class="section__title" data-scramble="reveal periodic">{title}</h2>
     {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
+    {viewAllHref && hasItems && (
+      <a class="section__all" href={viewAllHref} data-mag>{viewAllLabel} <span class="acc">↗</span></a>
+    )}
   </header>
-  {entries.length > 0 ? (
-    <div class={`section__grid section__grid--${entries[0]?.data.variant ?? 'wide'}`}>
-      {entries.map((e, i) => (
-        <div class="reveal" data-reveal={reveal} style={`--rev-delay:${i * 70}ms`}>
-          <Card {...(e.data as any)} />
+
+  {hasItems ? (
+    groups.filter((g) => g.cards.length > 0).map((g) => (
+      <div class="section__group">
+        {g.label && <p class="section__grouplabel lab" data-scramble="periodic">{g.label}</p>}
+        <div class={`section__grid section__grid--${g.variant ?? 'wide'}`}>
+          {g.cards.map((c, i) => (
+            <div class="reveal" data-reveal={reveal} style={`--rev-delay:${i * 70}ms`}>
+              <Card {...(c as any)} />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    ))
   ) : (
-    <p class="section__empty">No items yet.</p>
+    <p class="section__empty">{empty}</p>
   )}
 </section>
