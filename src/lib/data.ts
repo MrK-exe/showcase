@@ -105,3 +105,25 @@ export const getTopGames = () =>
   readJson('src/content/settings/top-games.json', z.object({ games: z.array(TopGameSchema).catch([]) }), { games: [] }).games;
 export const getConnectLinks = (fallback: ConnectLink[]) =>
   readJson('src/content/settings/connect.json', z.object({ links: z.array(ConnectLinkSchema) }), { links: fallback }).links;
+
+export interface SiteSettings {
+  tagline: string;
+  positioning: string;
+  bio: string;
+  cvUrl: string;
+  availability: string;
+}
+// Admin "Site settings" singleton. Per-field .catch(fallback.*) so a missing field keeps
+// the code default rather than degrading to '' (which would blank the title's tagline).
+export const getSiteSettings = (fallback: SiteSettings): SiteSettings =>
+  readJson(
+    'src/content/settings/site.json',
+    z.object({
+      tagline: z.string().catch(fallback.tagline),
+      positioning: z.string().catch(fallback.positioning),
+      bio: z.string().catch(fallback.bio),
+      cvUrl: z.string().catch(fallback.cvUrl),
+      availability: z.string().catch(fallback.availability),
+    }),
+    fallback
+  );

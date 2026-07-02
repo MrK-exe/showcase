@@ -22,6 +22,13 @@ mkdirSync(PUB, { recursive: true });
 /* ---- social share image (1200x630) via satori + resvg (Chakra Petch woff from @fontsource) ---- */
 {
   const [{ default: satori }, { Resvg }] = await Promise.all([import('satori'), import('@resvg/resvg-js')]);
+  // Tagline comes from the admin "Site settings" singleton so the share image can't go
+  // stale when it's edited; the literal is only the pre-admin default.
+  let tagline = 'filmmaker · developer · writer';
+  try {
+    const s = JSON.parse(readFileSync(resolve(__dirname, '../src/content/settings/site.json'), 'utf8'));
+    if (typeof s.tagline === 'string' && s.tagline.trim()) tagline = s.tagline.trim();
+  } catch {}
   const fontDir = resolve(__dirname, '../node_modules/@fontsource/chakra-petch/files');
   const bold = readFileSync(resolve(fontDir, 'chakra-petch-latin-700-normal.woff'));
   const med = readFileSync(resolve(fontDir, 'chakra-petch-latin-500-normal.woff'));
@@ -31,7 +38,7 @@ mkdirSync(PUB, { recursive: true });
     { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'space-between',
       backgroundColor: '#F4F2EC', padding: '72px 80px', fontFamily: 'Chakra Petch' },
     [
-      t({ fontSize: 28, letterSpacing: 5, color: '#6A6559' }, 'FILMMAKER · DEVELOPER · WRITER'),
+      t({ fontSize: 28, letterSpacing: 5, color: '#6A6559' }, tagline.toUpperCase()),
       t({ flexDirection: 'column', lineHeight: 0.92 }, [
         t({ fontSize: 154, fontWeight: 700, color: '#141310' }, 'ABDULLAH'),
         t({ fontSize: 154, fontWeight: 700 }, [

@@ -36,9 +36,14 @@ ships no React, no server, no admin route.
 
 ## Editing content & sections
 
-- **Entries** (work dev-logs, game reviews, photos) and **curated lists** (film favorites,
-  top games, playlist, connect links): edit in Keystatic (`npm run cms`).
-- **Section order/enable/weight, identity, links**: `src/config/site.config.ts`.
+- **Entries** (work dev-logs, game reviews, photos), **curated lists** (film favorites,
+  top games, playlist, connect links), and **site copy** (tagline, positioning, bio, CV,
+  availability — the "Site settings" panel): edit in Keystatic (`npm run cms`). Saves land
+  as local files; preview them live in the same server.
+- **Publish**: double-click `publish.cmd` (repo root) — commits everything and pushes;
+  CI deploys in ~5 min. Nothing goes live until you publish.
+- **Section order/enable/weight, identity, default links**: `src/config/site.config.ts`.
+  The "Site settings" values in `src/content/settings/site.json` override its copy fields.
 - Honest boundary: adding/reordering/disabling an **existing kind** of section is
   config-only. Adding a **new kind** of section also needs a `groupsFor()` case in
   `src/pages/index.astro` (and a pull script if it's fed from an external source).

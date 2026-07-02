@@ -5,7 +5,8 @@ import { config, fields, collection, singleton } from '@keystatic/core';
    - Uploaded (Photos): image + caption + date + Instagram link.
    - Curated (Film favorites, Top games, Music playlist, Connect links): singletons; arrays drag-to-reorder.
    Fed sections (Writing, latest Films, last-played games) are pulled at build time — not edited here.
-   Edited via `npm run cms` → Keystatic Cloud → commits to the repo → rebuild. */
+   Flow: `npm run cms` → edit at /keystatic (saves to local files, preview live in the same
+   server) → double-click publish.cmd to commit + push → CI deploys in ~5 min. */
 
 // Half-star ratings (Letterboxd-style). Stored as a string; parsed to a number when rendering.
 const ratingField = fields.select({
@@ -21,8 +22,7 @@ const ratingField = fields.select({
 });
 
 export default config({
-  storage: { kind: 'cloud' },
-  cloud: { project: 'personal-site/showcase' },
+  storage: { kind: 'local' },
   ui: { brand: { name: 'Abdullah Aletai' } },
 
   collections: {
@@ -92,6 +92,37 @@ export default config({
   },
 
   singletons: {
+    // ── Owner copy: tagline + hireability lines. Defaults live in src/config/site.config.ts;
+    //    values saved here override them. Empty field = that piece stays hidden on the page. ──
+    siteSettings: singleton({
+      label: 'Site settings',
+      path: 'src/content/settings/site',
+      format: { data: 'json' },
+      schema: {
+        tagline: fields.text({
+          label: 'Tagline',
+          description: 'Shown under the wordmark and in the browser title, e.g. “filmmaker · developer · writer”. Also drawn onto the social share image.',
+        }),
+        positioning: fields.text({
+          label: 'Positioning',
+          description: 'One line that leads with what you MAKE, e.g. “I direct films, build software, and write.” Empty = hidden.',
+        }),
+        bio: fields.text({
+          label: 'Bio',
+          multiline: true,
+          description: '2–3 lines in your voice: who you are and what to hire you for. Empty = hidden.',
+        }),
+        cvUrl: fields.text({
+          label: 'CV file name',
+          description: 'File name of a CV/résumé PDF placed in the /public folder, e.g. “abdullah-aletai-cv.pdf”. The CV button appears when set.',
+        }),
+        availability: fields.text({
+          label: 'Availability',
+          description: 'Short status line, e.g. “open to film + software work”. Empty = hidden.',
+        }),
+      },
+    }),
+
     // ── Curated: hand-picked top-4 favorite films (posters auto-fetched from the Letterboxd link at build) ──
     filmFavorites: singleton({
       label: 'Films — favorites',
