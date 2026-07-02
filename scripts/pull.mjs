@@ -12,6 +12,7 @@ import { pullSteam } from './lib/steam.mjs';
 import { pullPsn } from './lib/psn.mjs';
 import { resolveTracks } from './lib/music.mjs';
 import { readSingleton } from './lib/singleton.mjs';
+import { withCachedArt } from './lib/artcache.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GEN = resolve(__dirname, '../src/generated');
@@ -67,13 +68,21 @@ async function filmFavorites() {
 
 console.log('pull: fetching fed data …');
 
-// Writing — Substack metadata (latest posts).
-await task('writing.json', async () => ({ items: await pullSubstack(sources.substack, 12) }), { items: [] });
+// Writing — Substack metadata (latest posts). Art fields are downloaded into
+// src/generated/art (see lib/artcache.mjs) so the site serves them from its own origin.
+await task(
+  'writing.json',
+  async () => ({ items: await withCachedArt(await pullSubstack(sources.substack, 12), 'image') }),
+  { items: [] }
+);
 
 // Films — latest reviews from RSS + hand-curated favorites with fetched posters.
 await task(
   'films.json',
-  async () => ({ reviews: await pullLetterboxd(sources.letterboxd, 8), favorites: await filmFavorites() }),
+  async () => ({
+    reviews: await withCachedArt(await pullLetterboxd(sources.letterboxd, 8), 'poster'),
+    favorites: await withCachedArt(await filmFavorites(), 'poster'),
+  }),
   { reviews: [], favorites: [] }
 );
 
@@ -88,13 +97,13 @@ await task(
     let steam = prev.steam || [];
     try {
       const hasKey = sources.steamId && process.env.STEAM_API_KEY;
-      if (hasKey) steam = await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4);
+      if (hasKey) steam = await withCachedArt(await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4), 'cover', 'header');
     } catch (e) {
       console.warn(`  steam failed: ${e?.message || e} (kept last good)`);
     }
     let psn = prev.psn || [];
     try {
-      if (process.env.PSN_NPSSO) psn = await pullPsn(process.env.PSN_NPSSO, 4);
+      if (process.env.PSN_NPSSO) psn = await withCachedArt(await pullPsn(process.env.PSN_NPSSO, 4), 'cover');
     } catch (e) {
       console.warn(`  psn failed: ${e?.message || e} (kept last good)`);
     }
@@ -104,6 +113,10 @@ await task(
 );
 
 // Music — resolve the CMS playlist's Spotify links to preview + art for the record player.
-await task('music.json', async () => ({ tracks: await resolveTracks(readSingleton('music')?.tracks, 12) }), { tracks: [] });
+await task(
+  'music.json',
+  async () => ({ tracks: await withCachedArt(await resolveTracks(readSingleton('music')?.tracks, 12), 'art') }),
+  { tracks: [] }
+);
 
 console.log('pull: done');

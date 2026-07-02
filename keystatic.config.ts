@@ -62,8 +62,10 @@ export default config({
         rating: ratingField,
         cover: fields.image({
           label: 'Cover art',
-          directory: 'public/images/games',
-          publicPath: '/images/games/',
+          // saved into src/assets so astro:assets optimizes it; the stored path is
+          // entry-relative because the collection schema resolves it via image()
+          directory: 'src/assets/images/games',
+          publicPath: '../../assets/images/games/',
         }),
         excerpt: fields.text({ label: 'Excerpt', multiline: true }),
         body: fields.markdoc({ label: 'Review' }),
@@ -80,8 +82,8 @@ export default config({
         name: fields.slug({ name: { label: 'Name (internal id)' } }),
         image: fields.image({
           label: 'Photo',
-          directory: 'public/images/photos',
-          publicPath: '/images/photos/',
+          directory: 'src/assets/images/photos',
+          publicPath: '../../assets/images/photos/',
           validation: { isRequired: true },
         }),
         caption: fields.text({ label: 'Caption', multiline: true }),
@@ -153,8 +155,10 @@ export default config({
             rating: ratingField,
             cover: fields.image({
               label: 'Cover art',
-              directory: 'public/images/games',
-              publicPath: '/images/games/',
+              // singleton is read outside content collections, so the stored path is
+              // src-absolute and resolved to ImageMetadata by src/lib/art.ts
+              directory: 'src/assets/images/games',
+              publicPath: '/src/assets/images/games/',
             }),
           }),
           { label: 'Top games', itemLabel: (p) => p.fields.title.value || 'Game' }

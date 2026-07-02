@@ -28,7 +28,9 @@ npm run generate         # regenerate the ASCII banner + public/og.png
 ## Architecture in one paragraph
 
 Three layers that never bleed: **content** (Astro content collections + Keystatic CMS +
-feed JSON pulled at build time — zero runtime fetching, zero client keys), **presentation**
+feed JSON *and remote artwork* pulled at build time — zero runtime fetching, zero client
+keys, zero third-party hotlinking; all images ship as optimized WebP via astro:assets),
+**presentation**
 (`src/styles/tokens.css` + a single `Card.astro` primitive), **behavior** (one progressive-
 enhancement script layer; the site is fully readable with JS off). The Keystatic admin
 (React, server adapter) loads **only** under `ENABLE_KEYSTATIC=true` — the deployed site

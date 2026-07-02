@@ -1,10 +1,14 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import { isSafeHref } from '../lib/safe';
 
 export interface Link { label: string; href: string }
 export interface Props {
   variant?: 'poster' | 'wide' | 'photo' | 'row';
-  image?: string;
+  // ImageMetadata (CMS upload / build-cached art) → optimized <Image> with srcset;
+  // plain string (remote-URL fallback) → the old hotlinked <img>
+  image?: string | ImageMetadata;
   kicker?: string;
   title: string;
   subtitle?: string;
@@ -25,6 +29,21 @@ const safeLinks = links.filter((l) => isSafeHref(l.href));
 const ratio: Record<string, string> = {
   poster: '2 / 3', wide: '16 / 9', photo: '3 / 2', row: '',
 };
+// Candidate widths + honest `sizes` per grid variant. Track minimums come from
+// app.css (.section__grid*: poster/compact 150px, photo 180px, wide 220px, lead 300px);
+// tracks stretch to roughly 1.5–2×, and the top candidate covers 2× DPR.
+const sizesFor: Record<string, string> = {
+  poster: '(max-width: 480px) 46vw, 220px',
+  photo: '(max-width: 480px) 46vw, 280px',
+  wide: '(max-width: 760px) 92vw, 340px',
+  row: '',
+};
+const widthsFor: Record<string, number[]> = {
+  poster: [160, 240, 320, 480],
+  photo: [200, 300, 420, 600],
+  wide: [340, 520, 720, 1000],
+  row: [],
+};
 // half-star aware: 2.5 → ★★½☆☆ (never rounds up)
 const rated = rating != null && rating > 0;
 const full = rated ? Math.floor(rating) : 0;
@@ -38,7 +57,13 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
 <article class={`card card--${variant}`}>
   {variant !== 'row' && (
     <div class="card__media" style={ratio ? `aspect-ratio:${ratio}` : undefined}>
-      {image ? <img src={image} alt={title} loading="lazy" decoding="async" /> : <span class="card__ph">no image</span>}
+      {typeof image === 'object' ? (
+        <Image src={image} alt={title} widths={widthsFor[variant]} sizes={sizesFor[variant]} format="webp" loading="lazy" decoding="async" />
+      ) : image ? (
+        <img src={image} alt={title} loading="lazy" decoding="async" />
+      ) : (
+        <span class="card__ph">no image</span>
+      )}
       {status && <span class="card__status">{status}</span>}
     </div>
   )}

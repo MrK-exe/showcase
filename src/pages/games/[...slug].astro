@@ -1,5 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
 import Experience from '../../layouts/Experience.astro';
 import { site } from '../../config/site.config';
 
@@ -17,7 +18,6 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
-const asset = (p?: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
 const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 const dateStr = entry.data.date
   ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' }).format(entry.data.date)
@@ -28,7 +28,8 @@ const rated = r != null && r > 0;
 const full = rated ? Math.floor(r) : 0;
 const half = rated && r - full >= 0.5 ? 1 : 0;
 const stars = rated ? '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - half)) : null;
-const cover = asset(entry.data.cover);
+// image() collection field → ImageMetadata, rendered as an optimized <Image> below
+const cover = entry.data.cover;
 ---
 <Experience title={`${entry.data.title} — Games — ${site.name}`} description={entry.data.excerpt || undefined}>
   <article class="detail">
@@ -42,7 +43,9 @@ const cover = asset(entry.data.cover);
     </header>
 
     {cover && (
-      <div class="detail__cover"><img src={cover} alt={`${entry.data.title} cover art`} /></div>
+      <div class="detail__cover">
+        <Image src={cover} alt={`${entry.data.title} cover art`} widths={[480, 720, 1000]} sizes="(max-width: 760px) 92vw, 720px" format="webp" />
+      </div>
     )}
 
     {toc.length > 0 && (

@@ -32,14 +32,16 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      # Restore the previous run's pulled JSON so scripts/pull.mjs "keep last good"
-      # has something to keep on a clean checkout (src/generated/*.json is gitignored).
-      # The unique key never hits, so restore-keys picks the most recent save and the
-      # post-job step saves this run's fresh data under the new key.
+      # Restore the previous run's pulled JSON + downloaded artwork so scripts/pull.mjs
+      # "keep last good" has something to keep on a clean checkout (src/generated is
+      # gitignored). The unique key never hits, so restore-keys picks the most recent
+      # save and the post-job step saves this run's fresh data under the new key.
       - name: Restore last-good fed data
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: src/generated/*.json
+          path: |
+            src/generated/*.json
+            src/generated/art
           key: fed-data-${{ github.run_id }}
           restore-keys: |
             fed-data-

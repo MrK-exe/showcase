@@ -19,28 +19,32 @@ const work = defineCollection({
 });
 
 // Authored game reviews (markdoc body + dedicated page).
+// cover uses the image() helper: Keystatic stores an entry-relative path into
+// src/assets/images/games, astro:assets resolves it to ImageMetadata (WebP + srcset).
 const gameReviews = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdoc}', base: './src/content/game-reviews' }),
-  schema: z.object({
-    title: z.string(),
-    date: z.coerce.date().optional(),
-    rating: z.coerce.number().min(0).max(5).optional(),
-    cover: z.string().optional(),
-    excerpt: z.string().optional(),
-  }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      date: z.coerce.date().optional(),
+      rating: z.coerce.number().min(0).max(5).optional(),
+      cover: image().optional(),
+      excerpt: z.string().optional(),
+    }),
 });
 
-// Uploaded photos (data-only yaml: image + caption + date + Instagram link).
+// Uploaded photos (data-only json: image + caption + date + Instagram link).
 const photos = defineCollection({
   loader: glob({ pattern: '**/*.{yaml,yml,json}', base: './src/content/photos' }),
-  schema: z.object({
-    name: z.string().optional(),
-    image: z.string(),
-    caption: z.string().optional(),
-    date: z.coerce.date().optional(),
-    // mirrors the Keystatic url field — must be a real URL when present
-    instagramUrl: z.string().url().optional().or(z.literal('')),
-  }),
+  schema: ({ image }) =>
+    z.object({
+      name: z.string().optional(),
+      image: image(),
+      caption: z.string().optional(),
+      date: z.coerce.date().optional(),
+      // mirrors the Keystatic url field — must be a real URL when present
+      instagramUrl: z.string().url().optional().or(z.literal('')),
+    }),
 });
 
 export const collections = { work, gameReviews, photos };

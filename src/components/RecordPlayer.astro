@@ -1,10 +1,24 @@
 ---
+import { getImage } from 'astro:assets';
 import { getMusic } from '../lib/data';
 import { isSafeHref } from '../lib/safe';
+import { resolveArt } from '../lib/art';
 interface Props { num: string; id: string; title: string; meta?: string; weight?: string }
 const { num, id, title, meta, weight = 'compact' } = Astro.props;
-// spotifyUrl flows from a CMS singleton through the pull pipeline — allowlist the scheme
-const tracks = getMusic().map((t) => ({ ...t, spotifyUrl: isSafeHref(t.spotifyUrl) ? t.spotifyUrl : '' }));
+// spotifyUrl flows from a CMS singleton through the pull pipeline — allowlist the scheme.
+// Album art is a CSS background + JS-swapped data attribute, so it needs a URL string:
+// build-cached art goes through getImage() for an optimized asset; a remote-URL
+// fallback passes through unchanged.
+const tracks = await Promise.all(
+  getMusic().map(async (t) => {
+    const art = resolveArt(t.art);
+    return {
+      ...t,
+      art: typeof art === 'object' ? (await getImage({ src: art, width: 320, format: 'webp' })).src : art ?? '',
+      spotifyUrl: isSafeHref(t.spotifyUrl) ? t.spotifyUrl : '',
+    };
+  })
+);
 const first = tracks[0];
 ---
 <section class={`section section--${weight}`} id={id} data-section>
