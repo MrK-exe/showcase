@@ -1,0 +1,14 @@
+{
+  "tracks": [
+    {
+      "spotifyUrl": "https://open.spotify.com/track/26iu1k7U1NT2i8Sz7mDPGa?si=d92a2abec81748d0"
+    },
+    {
+      "spotifyUrl": "https://open.spotify.com/track/40riOy7x9W7GXjyGp4pjAv?si=7a60accbd2bf4266",
+      "label": "test"
+    },
+    {
+      "spotifyUrl": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/40riOy7x9W7GXjyGp4pjAv?utm_source=generator&si=47083d4715e54cf2\" width=\"100%\" height=\"352\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>"
+    }
+  ]
+}
