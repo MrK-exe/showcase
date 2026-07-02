@@ -56,7 +56,7 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
 ---
 <article class={`card card--${variant}`}>
   {variant !== 'row' && (
-    <div class="card__media" style={ratio ? `aspect-ratio:${ratio}` : undefined}>
+    <div class="card__media" style={ratio[variant] ? `aspect-ratio:${ratio[variant]}` : undefined}>
       {typeof image === 'object' ? (
         <Image src={image} alt={title} widths={widthsFor[variant]} sizes={sizesFor[variant]} format="webp" loading="lazy" decoding="async" />
       ) : image ? (
