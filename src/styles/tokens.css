@@ -24,6 +24,10 @@
   /* radius (squared aesthetic) */
   --radius: 0px;
 
+  /* structure */
+  --maxw: 1040px;    /* content column */
+  --hair: 1.5px;     /* the hairline border weight used everywhere */
+
   /* motion tokens — route every animation through these */
   --dur-fast: 160ms;
   --dur-base: 320ms;
@@ -31,9 +35,11 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* layering */
+  /* layering — intro sits above the modal layer by design (it owns the whole boot
+     moment and is gone within seconds); the cursor tops everything */
   --z-nav: 120;
   --z-overlay: 140;
   --z-modal: 160;
+  --z-intro: 200;
   --z-cursor: 300;
 }

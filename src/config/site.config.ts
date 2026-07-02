@@ -1,5 +1,7 @@
 // Single source for site identity + section registry.
-// Adding/reordering/enabling a section is a config change here — never a code change in pages.
+// Honest boundary: reordering/enabling/re-weighting an EXISTING kind of section is a
+// config change here. Adding a NEW kind of section also needs a groupsFor() case in
+// src/pages/index.astro (and a pull script if it's fed from an external source).
 
 export type CollectionKey = 'work' | 'gameReviews' | 'photos';
 export type SectionWeight = 'lead' | 'standard' | 'compact';

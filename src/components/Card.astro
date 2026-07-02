@@ -3,7 +3,7 @@ import { isSafeHref } from '../lib/safe';
 
 export interface Link { label: string; href: string }
 export interface Props {
-  variant?: 'poster' | 'wide' | 'square' | 'photo' | 'row';
+  variant?: 'poster' | 'wide' | 'photo' | 'row';
   image?: string;
   kicker?: string;
   title: string;
@@ -23,7 +23,7 @@ const {
 const safeLinks = links.filter((l) => isSafeHref(l.href));
 
 const ratio: Record<string, string> = {
-  poster: '2 / 3', wide: '16 / 9', square: '1 / 1', photo: '3 / 2', row: '',
+  poster: '2 / 3', wide: '16 / 9', photo: '3 / 2', row: '',
 };
 // half-star aware: 2.5 → ★★½☆☆ (never rounds up)
 const rated = rating != null && rating > 0;
@@ -60,9 +60,9 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
 </article>
 
 <style>
-  .card { border: 1.5px solid var(--ink); background: var(--bone); display: flex; flex-direction: column; }
-  .card--row { flex-direction: row; align-items: baseline; gap: var(--space-3); border: 0; border-top: 1.5px solid var(--line); padding: var(--space-3) 0; }
-  .card__media { position: relative; border-bottom: 1.5px solid var(--ink); display: flex; align-items: flex-end; overflow: hidden;
+  .card { border: var(--hair) solid var(--ink); background: var(--bone); display: flex; flex-direction: column; }
+  .card--row { flex-direction: row; align-items: baseline; gap: var(--space-3); border: 0; border-top: var(--hair) solid var(--line); padding: var(--space-3) 0; }
+  .card__media { position: relative; border-bottom: var(--hair) solid var(--ink); display: flex; align-items: flex-end; overflow: hidden;
     background-image: repeating-linear-gradient(135deg, rgba(20, 19, 16, 0.06) 0 8px, transparent 8px 16px); }
   .card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .card__ph { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); padding: var(--space-2); text-transform: uppercase; }
