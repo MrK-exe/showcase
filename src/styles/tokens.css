@@ -3,8 +3,9 @@
   /* palette — one accent only */
   --bone: #F4F2EC;
   --ink: #141310;
-  --acc: #E5341C;
-  --mut: #7D786C;
+  --acc: #E5341C;          /* bright vermilion — large + graphic use */
+  --acc-ink: #C42A14;      /* deeper vermilion — small TEXT, passes WCAG AA (5.09:1 on bone) */
+  --mut: #6A6559;          /* muted graphite — passes AA (5.18:1 on bone) */
   --line: rgba(20, 19, 16, 0.16);
   --line-2: rgba(20, 19, 16, 0.30);
 
