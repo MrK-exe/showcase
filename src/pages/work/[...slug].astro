@@ -1,0 +1,50 @@
+---
+import { getCollection, render } from 'astro:content';
+import Experience from '../../layouts/Experience.astro';
+import { site } from '../../config/site.config';
+
+// Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (where getStaticPaths
+// would otherwise be ignored and an on-demand render would crash on undefined props).
+export const prerender = true;
+
+// One static page per authored Work entry. entry.id (from the glob loader) matches the
+// `${base}work/${e.id}` links emitted on the homepage (index.astro), so these resolve
+// instead of 404ing the moment an entry is authored.
+export async function getStaticPaths() {
+  const entries = await getCollection('work');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
+const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+const dateStr = entry.data.date
+  ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' }).format(entry.data.date)
+  : null;
+---
+<Experience title={`${entry.data.title} — Work — ${site.name}`} description={entry.data.summary || undefined}>
+  <article class="detail">
+    <a class="detail__back lab" href={`${base}#work`} data-mag>← index</a>
+    <header class="detail__head">
+      <p class="detail__kick lab">Work · dev log{entry.data.status ? ` · ${entry.data.status}` : ''}</p>
+      <h1 class="detail__title">{entry.data.title}</h1>
+      {dateStr && <p class="detail__meta lab">{dateStr}</p>}
+      {entry.data.summary && <p class="detail__summary">{entry.data.summary}</p>}
+      {entry.data.tags.length > 0 && (
+        <ul class="detail__tags">{entry.data.tags.map((t) => <li>{t}</li>)}</ul>
+      )}
+    </header>
+
+    {toc.length > 0 && (
+      <nav class="detail__toc" aria-label="On this page">
+        <p class="lab">On this page</p>
+        <ol>{toc.map((h) => (
+          <li data-depth={h.depth}><a href={`#${h.slug}`} data-mag>{h.text}</a></li>
+        ))}</ol>
+      </nav>
+    )}
+
+    <div class="prose"><Content /></div>
+  </article>
+</Experience>

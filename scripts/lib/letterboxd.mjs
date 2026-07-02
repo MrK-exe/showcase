@@ -50,7 +50,7 @@ export async function pullLetterboxd(user, limit = 8) {
 export async function fetchFilmPoster(filmUrl) {
   if (!filmUrl) return null;
   try {
-    const html = await fetch(filmUrl, { headers: { 'user-agent': 'Mozilla/5.0' } }).then((r) => r.text());
+    const html = await fetch(filmUrl, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
     return (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1] || null;
   } catch {
     return null;

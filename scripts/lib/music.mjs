@@ -11,10 +11,10 @@ const canonical = (url) => {
 const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 async function spotifyMeta(url) {
-  const oembed = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`).then((r) => r.json());
+  const oembed = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
   let artist = '';
   try {
-    const html = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' } }).then((r) => r.text());
+    const html = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
     const desc = (html.match(/<meta property="og:description" content="([^"]*)"/) || [])[1] || '';
     artist = desc.split(' · ')[0].trim();
   } catch { /* artist optional — title-only match still works */ }
@@ -23,13 +23,18 @@ async function spotifyMeta(url) {
 
 async function itunesMatch(artist, title) {
   const term = encodeURIComponent(`${artist} ${title}`.trim());
-  const data = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=5`).then((r) => r.json());
+  const data = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
   const results = data.results || [];
   const want = norm(title);
+  const wantArtist = norm(artist);
+  // when the artist is known, the match must agree on it — a blind results[0] can attach
+  // the wrong song's 30-sec preview to the track. No artist scraped → title-only match,
+  // but never a fallback to an arbitrary first result.
+  const artistOk = (r) =>
+    !wantArtist || norm(r.artistName).includes(wantArtist) || wantArtist.includes(norm(r.artistName));
   const hit =
-    results.find((r) => norm(r.trackName) === want) ||
-    results.find((r) => norm(r.trackName).includes(want)) ||
-    results[0];
+    results.find((r) => norm(r.trackName) === want && artistOk(r)) ||
+    results.find((r) => norm(r.trackName).includes(want) && artistOk(r));
   if (!hit) return { preview: null, art: null };
   return {
     preview: hit.previewUrl || null,

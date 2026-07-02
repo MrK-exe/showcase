@@ -1,0 +1,59 @@
+---
+import { getCollection, render } from 'astro:content';
+import Experience from '../../layouts/Experience.astro';
+import { site } from '../../config/site.config';
+
+// Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (where getStaticPaths
+// would otherwise be ignored and an on-demand render would crash on undefined props).
+export const prerender = true;
+
+// One static page per authored game review. entry.id matches the `${base}games/${g.id}`
+// links on the homepage. The URL segment is /games/ (the collection is `gameReviews`).
+export async function getStaticPaths() {
+  const entries = await getCollection('gameReviews');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const asset = (p?: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
+const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+const dateStr = entry.data.date
+  ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' }).format(entry.data.date)
+  : null;
+// half-star aware, matching Card.astro (never rounds up)
+const r = entry.data.rating;
+const rated = r != null && r > 0;
+const full = rated ? Math.floor(r) : 0;
+const half = rated && r - full >= 0.5 ? 1 : 0;
+const stars = rated ? '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - half)) : null;
+const cover = asset(entry.data.cover);
+---
+<Experience title={`${entry.data.title} — Games — ${site.name}`} description={entry.data.excerpt || undefined}>
+  <article class="detail">
+    <a class="detail__back lab" href={`${base}#games`} data-mag>← index</a>
+    <header class="detail__head">
+      <p class="detail__kick lab">Games · review</p>
+      <h1 class="detail__title">{entry.data.title}</h1>
+      {stars && <p class="detail__stars" aria-label={`${r} out of 5`}>{stars}</p>}
+      {dateStr && <p class="detail__meta lab">{dateStr}</p>}
+      {entry.data.excerpt && <p class="detail__summary">{entry.data.excerpt}</p>}
+    </header>
+
+    {cover && (
+      <div class="detail__cover"><img src={cover} alt={`${entry.data.title} cover art`} /></div>
+    )}
+
+    {toc.length > 0 && (
+      <nav class="detail__toc" aria-label="On this page">
+        <p class="lab">On this page</p>
+        <ol>{toc.map((h) => (
+          <li data-depth={h.depth}><a href={`#${h.slug}`} data-mag>{h.text}</a></li>
+        ))}</ol>
+      </nav>
+    )}
+
+    <div class="prose"><Content /></div>
+  </article>
+</Experience>

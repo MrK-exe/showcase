@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]   # PRs run the same checks + build, but never deploy
   schedule:
     - cron: '0 6 * * *'   # daily — re-pull Letterboxd / Steam / PSN / Substack and redeploy
   workflow_dispatch:
@@ -12,8 +14,10 @@ permissions:
   pages: write
   id-token: write
 
+# Per-ref groups: PR builds get their own lane and can never cancel an in-flight
+# main deploy; pushes/cron/dispatch on main still serialize with each other.
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,6 +31,27 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      # Restore the previous run's pulled JSON so scripts/pull.mjs "keep last good"
+      # has something to keep on a clean checkout (src/generated/*.json is gitignored).
+      # The unique key never hits, so restore-keys picks the most recent save and the
+      # post-job step saves this run's fresh data under the new key.
+      - name: Restore last-good fed data
+        uses: actions/cache@v4
+        with:
+          path: src/generated/*.json
+          key: fed-data-${{ github.run_id }}
+          restore-keys: |
+            fed-data-
+
+      - name: Type check
+        run: npx astro check
+
+      # Deterministic static assets (ASCII banner + OG share image) — regenerated every
+      # build so a name/tagline change can't ship a stale og.png.
+      - name: Generate banner + OG image
+        run: node scripts/generate.mjs
+
       - name: Build
         run: npm run build
         env:
@@ -39,6 +64,7 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -7,9 +7,9 @@ const first = tracks[0];
 ---
 <section class={`section section--${weight}`} id={id} data-section>
   <header class="section__head reveal" data-reveal="flick">
-    <span class="section__num" data-scramble="reveal periodic" data-scramble-chars="0-9">{num}</span>
-    <h2 class="section__title" data-scramble="reveal periodic">{title}</h2>
-    {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
+    <span class="section__num" data-scramble="reveal" data-scramble-chars="0-9">{num}</span>
+    <h2 class="section__title" data-scramble="reveal">{title}</h2>
+    {meta && <span class="section__meta" data-scramble="reveal">{meta}</span>}
   </header>
 
   {tracks.length > 0 ? (
@@ -41,8 +41,11 @@ const first = tracks[0];
               data-preview={t.preview ?? ''}
               data-spotify={t.spotifyUrl}
             >
-              <span>{String(i + 1).padStart(2, '0')} · {t.title}</span>
-              <span class="lab">{t.preview ? '0:30' : 'spotify'}</span>
+              {/* real link (Spotify) without JS; upgraded to an in-page preview control by JS */}
+              <a class="rp__track" href={t.spotifyUrl}>
+                <span>{String(i + 1).padStart(2, '0')} · {t.title}</span>
+                <span class="lab">{t.preview ? '0:30' : 'spotify'}</span>
+              </a>
             </li>
           ))}
         </ol>

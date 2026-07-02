@@ -1,12 +1,16 @@
 ---
 import { sections } from '../config/site.config';
 const enabled = sections.filter((s) => s.enabled);
+// Base-absolute hrefs (`/showcase/#work`) so the nav also works FROM detail/404 pages —
+// the click handler in Experience only hijacks into smooth-scroll when the section
+// exists on the current page.
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 <nav id="rail" aria-label="Sections">
   <ul class="rail__list">
     {enabled.map((s, i) => (
       <li>
-        <a href={`#${s.id}`} data-nav={s.id} class="rail__item">
+        <a href={`${base}#${s.id}`} data-nav={s.id} class="rail__item">
           <span class="rail__dot" aria-hidden="true"></span>
           <span class="rail__num">{String(i + 1).padStart(2, '0')}</span>
           <span class="rail__label">{s.title}</span>
@@ -15,3 +19,19 @@ const enabled = sections.filter((s) => s.enabled);
     ))}
   </ul>
 </nav>
+
+<!-- compact bottom bar <760px — the rail is hidden there and had no replacement -->
+<nav id="mnav" aria-label="Sections">
+  <ul>
+    {enabled.map((s, i) => (
+      <li>
+        <a href={`${base}#${s.id}`} data-nav={s.id}>
+          <span class="mnav__num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>{s.title}
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<!-- back-to-top (mobile) — shown by JS once the hero scrolls away -->
+<button id="totop" type="button" aria-label="Back to top">↑</button>

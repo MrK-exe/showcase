@@ -1,6 +1,6 @@
 ---
-interface Link { label: string; href: string }
-interface Props {
+export interface Link { label: string; href: string }
+export interface Props {
   variant?: 'poster' | 'wide' | 'square' | 'photo' | 'row';
   image?: string;
   kicker?: string;
@@ -68,11 +68,11 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
   .card__kicker { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); margin: 0; }
   .card__title { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; letter-spacing: 0.3px; }
   .card__sub { font-size: 13px; color: var(--mut); margin: 0; }
-  .card__rating { color: var(--acc); letter-spacing: 2px; margin: 0; }
+  .card__rating { color: var(--acc-ink); letter-spacing: 2px; margin: 0; }
   .card__bar { height: 6px; border: 1px solid var(--ink); }
   .card__bar i { display: block; height: 100%; background: var(--acc); }
   .card__meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); margin: 0; text-transform: uppercase; }
   .card__links { display: flex; gap: 12px; margin: 2px 0 0; }
-  .card__links a { font-family: var(--font-mono); font-size: 11px; color: var(--acc); text-decoration: none; }
+  .card__links a { font-family: var(--font-mono); font-size: 11px; color: var(--acc-ink); text-decoration: none; }
   .card__links a:hover { text-decoration: underline; }
 </style>

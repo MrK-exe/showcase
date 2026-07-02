@@ -2,7 +2,7 @@
 // into src/generated so the site ships zero runtime fetching and no exposed keys. Fault-tolerant:
 // on a failed source it keeps the last good file (or writes an empty-but-valid one), and always
 // exits 0 so a flaky feed never breaks the build. Run with:  node scripts/pull.mjs
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sources } from '../src/config/sources.mjs';
@@ -16,6 +16,18 @@ import { readSingleton } from './lib/singleton.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GEN = resolve(__dirname, '../src/generated');
 mkdirSync(GEN, { recursive: true });
+
+// Read a previously generated file (the "last good" state) — used for per-source merges
+// where one platform's outage must not blank another platform's fresh data.
+function readGen(name, fallback) {
+  const file = resolve(GEN, name);
+  if (!existsSync(file)) return fallback;
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return fallback;
+  }
+}
 
 // Run one source. On success: write fresh JSON. On failure: keep the existing file,
 // or seed an empty-but-valid one so the page import never breaks.
@@ -69,13 +81,22 @@ await task(
 await task(
   'lastplayed.json',
   async () => {
-    // isolate PSN so a token/auth hiccup can't also wipe the Steam list
-    const steam = await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4);
-    let psn = [];
+    // Per-source isolation WITH per-source keep-last-good: one platform's outage must
+    // neither wipe the other platform's fresh pull nor overwrite its OWN last good list
+    // with []. A missing key (e.g. a build without secrets) also keeps the last good list.
+    const prev = readGen('lastplayed.json', { steam: [], psn: [] });
+    let steam = prev.steam || [];
     try {
-      psn = await pullPsn(process.env.PSN_NPSSO, 4);
+      const hasKey = sources.steamId && process.env.STEAM_API_KEY;
+      if (hasKey) steam = await pullSteam(sources.steamId, process.env.STEAM_API_KEY, 4);
     } catch (e) {
-      console.warn(`  psn failed: ${e?.message || e}`);
+      console.warn(`  steam failed: ${e?.message || e} (kept last good)`);
+    }
+    let psn = prev.psn || [];
+    try {
+      if (process.env.PSN_NPSSO) psn = await pullPsn(process.env.PSN_NPSSO, 4);
+    } catch (e) {
+      console.warn(`  psn failed: ${e?.message || e} (kept last good)`);
     }
     return { steam, psn };
   },

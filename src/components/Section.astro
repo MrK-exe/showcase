@@ -1,7 +1,8 @@
 ---
 import Card from './Card.astro';
+import type { Props as CardProps } from './Card.astro';
 
-interface Group { label?: string; variant?: string; cards: Record<string, any>[] }
+export interface Group { label?: string; variant?: string; cards: CardProps[] }
 interface Props {
   num: string; id: string; title: string; meta?: string;
   weight?: string; reveal?: string;
@@ -18,9 +19,9 @@ const hasItems = groups.some((g) => g.cards.length > 0);
 ---
 <section class={`section section--${weight}`} id={id} data-section>
   <header class="section__head reveal" data-reveal={reveal}>
-    <span class="section__num" data-scramble="reveal periodic" data-scramble-chars="0-9">{num}</span>
-    <h2 class="section__title" data-scramble="reveal periodic">{title}</h2>
-    {meta && <span class="section__meta" data-scramble="periodic">{meta}</span>}
+    <span class="section__num" data-scramble="reveal" data-scramble-chars="0-9">{num}</span>
+    <h2 class="section__title" data-scramble="reveal">{title}</h2>
+    {meta && <span class="section__meta" data-scramble="reveal">{meta}</span>}
     {viewAllHref && hasItems && (
       <a class="section__all" href={viewAllHref} data-mag>{viewAllLabel} <span class="acc">↗</span></a>
     )}
@@ -29,11 +30,11 @@ const hasItems = groups.some((g) => g.cards.length > 0);
   {hasItems ? (
     groups.filter((g) => g.cards.length > 0).map((g) => (
       <div class="section__group">
-        {g.label && <p class="section__grouplabel lab" data-scramble="periodic">{g.label}</p>}
+        {g.label && <p class="section__grouplabel lab" data-scramble="reveal">{g.label}</p>}
         <div class={`section__grid section__grid--${g.variant ?? 'wide'}`}>
           {g.cards.map((c, i) => (
             <div class="reveal" data-reveal={reveal} style={`--rev-delay:${i * 70}ms`}>
-              <Card {...(c as any)} />
+              <Card {...c} />
             </div>
           ))}
         </div>

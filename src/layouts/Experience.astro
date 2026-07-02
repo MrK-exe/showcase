@@ -1,5 +1,14 @@
 ---
 import '../styles/tokens.css';
+// Self-hosted latin-subset fonts (@fontsource) — replaces the Google Fonts CDN link
+// (GDPR IP transfer + render-blocking third-party origin). Only the weights in use:
+// Chakra Petch 500/700 (default-weight display text resolves to 500, as it always has),
+// Space Mono 400/700.
+import '@fontsource/chakra-petch/latin-500.css';
+import '@fontsource/chakra-petch/latin-700.css';
+import '@fontsource/space-mono/latin-400.css';
+import '@fontsource/space-mono/latin-700.css';
+import chakra700Url from '@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff2?url';
 import 'locomotive-scroll/dist/locomotive-scroll.css';
 import '../styles/app.css';
 import { site, links as defaultLinks } from '../config/site.config';
@@ -7,25 +16,85 @@ import Nav from '../components/Nav.astro';
 import banner from '../generated/banner.txt?raw';
 import { getConnectLinks } from '../lib/data';
 
-interface Props { title?: string }
-const { title } = Astro.props;
+interface Props { title?: string; description?: string; noindex?: boolean }
+const { title, description: descProp, noindex = false } = Astro.props;
 const pageTitle = title || `${site.name} — ${site.tagline}`;
+const description = descProp || `${site.author} — ${site.tagline}`;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');    // guarantee trailing slash
+// Per-page canonical: Astro.url.pathname carries the page's own path (incl. base) at build
+// time, so detail pages canonicalize to themselves — not to the homepage.
+const canonical = new URL(Astro.url.pathname.replace(/\/?$/, '/'), site.url).href;
+const ogImage = site.url + base + 'og.png';
 // Connect links: CMS singleton if present, else the defaults in site.config.
 const links = getConnectLinks(defaultLinks);
 const year = new Date().getFullYear();
+// Person structured data for search + rich results
+const personLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.author,
+  url: canonical,
+  description: site.tagline,
+  sameAs: links.filter((l) => /^https?:/.test(l.href)).map((l) => l.href),
+};
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Progressive enhancement: mark JS active before paint, and guarantee the boot overlay,
+         opacity:0 reveals, and hidden cursor can never leave a permanent black screen if the
+         enhancement bundle is slow or fails to load. See app.css (html:not(.js) / html.fallback). -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        addEventListener('load', function () {
+          setTimeout(function () {
+            var intro = document.getElementById('intro');
+            if (intro && !intro.classList.contains('off')) {
+              d.classList.add('fallback');
+              intro.classList.add('off');
+              document.dispatchEvent(new Event('intro:done'));
+              setTimeout(function () { intro.remove(); }, 700);
+            }
+          }, 3500);
+        });
+      })();
+    </script>
+    <noscript>
+      <style>
+        #intro, #cur, #sync, #glass { display: none !important; }
+        .reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
+        body, body * { cursor: auto !important; }
+      </style>
+    </noscript>
     <title>{pageTitle}</title>
-    <meta name="description" content={`${site.author} — ${site.tagline}`} />
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='50' y='6' width='62' height='62' transform='rotate(45 50 50)' fill='%23E5341C'/%3E%3C/svg%3E" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+    <!-- social / share cards -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${site.name} — ${site.tagline}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <script type="application/ld+json" set:html={JSON.stringify(personLd)} />
+    <!-- fonts are self-hosted (see @fontsource imports); preload the hero's display weight -->
+    <link rel="preload" as="font" type="font/woff2" href={chakra700Url} crossorigin />
   </head>
   <body>
+    <a href="#main" class="skip-link">Skip to content</a>
     <!-- build-log boot intro -->
     <div id="intro">
       <div id="intro-log"></div>
@@ -45,10 +114,10 @@ const year = new Date().getFullYear();
     <Nav />
 
     <div id="controls">
-      <button class="btn" id="connect-btn" data-open="connect-modal" data-mag data-scramble="hover">connect</button>
+      <button class="btn btn--contact" id="connect-btn" data-open="connect-modal" data-mag data-scramble="hover" aria-haspopup="dialog" aria-expanded="false">contact</button>
       <div class="menu">
-        <button class="btn" id="dev-btn" data-mag data-scramble="hover">dev</button>
-        <div id="dev-panel" role="menu">
+        <button class="btn" id="dev-btn" data-mag data-scramble="hover" aria-haspopup="true" aria-expanded="false">dev</button>
+        <div id="dev-panel" role="group" aria-label="Display options">
           <label class="tog" data-mag><input type="checkbox" id="t-sound" checked /><span class="box"></span><span>sound</span></label>
           <label class="tog" data-mag><input type="checkbox" id="t-crt" checked /><span class="box"></span><span>scanlines</span></label>
           <label class="tog" data-mag><input type="checkbox" id="t-curve" checked /><span class="box"></span><span>curvature</span></label>
@@ -58,8 +127,8 @@ const year = new Date().getFullYear();
 
     <div id="page">
       <div id="crt"></div>
-      <main><slot /></main>
-      <footer class="foot">© {year} {site.name} · <span class="foot__sys" data-scramble="periodic hover">sys·{site.codename}</span> · {site.url.replace('https://', '')} · built with Astro</footer>
+      <main id="main"><slot /></main>
+      <footer class="foot">© {year} {site.name} · <span class="foot__sys" data-scramble="periodic hover">sys·{site.codename}</span> · <a class="foot__contact" href={`mailto:${site.email}`} data-open="connect-modal" data-mag aria-haspopup="dialog" aria-expanded="false">get in touch ↗</a> · {site.url.replace('https://', '')} · built with Astro</footer>
     </div>
 
     <!-- persistent controls button + first-open controls card -->
@@ -71,10 +140,10 @@ const year = new Date().getFullYear();
       <div class="hud-row"><span class="hud-k">back</span><span class="hud-v">esc</span></div>
     </aside>
 
-    <!-- connect modal -->
-    <div class="modal" id="connect-modal">
+    <!-- contact / connect modal -->
+    <div class="modal" id="connect-modal" role="dialog" aria-modal="true" aria-labelledby="connect-title">
       <div class="sheet">
-        <h3>Connect <button class="xbtn" data-close data-mag>✕</button></h3>
+        <h3 id="connect-title">Get in touch <button class="xbtn" type="button" data-close data-mag aria-label="Close">✕</button></h3>
         <div class="linklist">
           {links.map((l) => <a href={l.href} data-mag>{l.label} <span class="acc">↗</span></a>)}
         </div>
@@ -125,6 +194,10 @@ const year = new Date().getFullYear();
         // defer so listeners registered later in this script (hero flip + scramble) catch intro:done on reload
         if (played || reduce) { setTimeout(done, 0); return; }
         try { sessionStorage.setItem(PLAYED, '1'); } catch (_) {}
+        // hard cap: the boot log never gates the page longer than this, whatever the bar timings
+        // do. Kept above the sequence's randomized worst case (~2.25s) so a normal run always
+        // resolves its '✓ ready' line before the cap can cut the fade short.
+        setTimeout(done, 2600);
         setTimeout(() => skipBtn?.focus(), 60);
 
         if (A.animate) A.animate('#intro-caret', { opacity: [1, 0], duration: 560, loop: true, alternate: true, ease: 'inOutQuad' });
@@ -162,14 +235,12 @@ const year = new Date().getFullYear();
         const fillY2K = (w: HTMLElement, then: () => void) => {
           const b = w.querySelector('i') as HTMLElement;
           const pct = w.querySelector('.bpct') as HTMLElement;
-          const pStall = Math.round(rnd(80, 90));
+          const pStall = Math.round(rnd(78, 90));
           const steps: [number, number][] = [
-            [Math.round(rnd(10, 22)), rnd(90, 200)],
-            [Math.round(rnd(30, 45)), rnd(120, 260)],
-            [Math.round(rnd(30, 45)), rnd(70, 150)],   // brief hold (re-rolled, ~same band)
-            [Math.round(rnd(55, 72)), rnd(110, 230)],
-            [pStall, rnd(70, 150)],
-            [pStall, rnd(360, 720)],                   // the awkward stall — randomized length
+            [Math.round(rnd(14, 26)), rnd(50, 110)],
+            [Math.round(rnd(44, 58)), rnd(60, 130)],
+            [Math.round(rnd(62, 76)), rnd(50, 110)],
+            [pStall, rnd(150, 260)],                   // one brief, honest stall — not the old 360–720ms hang
             [100, 0],
           ];
           let i = 0;
@@ -230,9 +301,9 @@ const year = new Date().getFullYear();
         addEventListener('mousedown', () => { cur.classList.add('flash'); setTimeout(() => cur.classList.remove('flash'), 140); });
 
         (function loop() {
-          const raw = mode === 'key' ? (focusEl || hoverEl) : hoverEl;
+          const raw = ((mode as string) === 'key' ? (focusEl || hoverEl) : hoverEl) as HTMLElement | null;
           // a hidden 0×0 toggle input (or its label) should frame the visible .tog row
-          const t = ((raw && raw.closest && raw.closest('.tog')) as HTMLElement) || raw;
+          const t = ((raw && raw.closest && raw.closest('.tog')) as HTMLElement | null) || raw;
           let tx, ty, tw, th;
           if (t && document.body.contains(t)) {
             const r = t.getBoundingClientRect();
@@ -256,14 +327,15 @@ const year = new Date().getFullYear();
           return r.width > 0 && r.height > 0;
         };
         addEventListener('keydown', (e) => {
+          // while a modal is open it owns the keyboard (focus trap + Esc live in ui())
+          if (document.querySelector('.modal.open')) return;
           const tag = (document.activeElement?.tagName || '').toLowerCase();
           if (tag === 'textarea' || (tag === 'input' && (document.activeElement as HTMLInputElement).type === 'text')) return;
-          const key = e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase();
-          if (e.key === 'Escape') { document.querySelectorAll('.modal.open').forEach((m) => m.classList.remove('open')); return; }
+          const key = e.key.toLowerCase();
           if (e.key === 'Enter' && mode === 'key') { const a = document.activeElement as HTMLElement; if (a && a.closest(SEL)) { e.preventDefault(); a.click(); } return; }
           const d = DIR[key];
           if (!d) return;
-          e.preventDefault(); mode = 'key';
+          mode = 'key';
           const list = (Array.from(document.querySelectorAll(SEL)) as HTMLElement[]).filter(visible);
           // anchor on the genuinely focused element (robust); else the reticle position
           const active = document.activeElement as HTMLElement | null;
@@ -285,6 +357,7 @@ const year = new Date().getFullYear();
             if (score < bestScore) { bestScore = score; best = el; }
           }
           if (best) {
+            e.preventDefault(); // only hijack the arrow/WASD key when focus actually moves (page ends still scroll)
             // a .tog label isn't focusable — focus its hidden checkbox so Enter still toggles
             const ft = (best.matches('label') ? best.querySelector('input,button,a') as HTMLElement | null : null) || best;
             ft.focus({ preventScroll: true });
@@ -341,16 +414,37 @@ const year = new Date().getFullYear();
           es.forEach((e) => {
             if (e.isIntersecting) {
               const id = (e.target as HTMLElement).id;
-              navLinks.forEach((l) => l.classList.toggle('on', l.getAttribute('href') === '#' + id));
+              navLinks.forEach((l) => l.classList.toggle('on', (l.getAttribute('href') || '').endsWith('#' + id)));
             }
           });
         }, { threshold: 0.4 });
         secs.forEach((s) => io.observe(s));
+        // Rail links are base-absolute (`/showcase/#work`) so they also work FROM detail pages:
+        // hijack into smooth-scroll only when the section exists on THIS page, else let the
+        // browser navigate back to the index.
         document.querySelectorAll('[data-nav], [data-sectlink]').forEach((l) =>
           l.addEventListener('click', (e) => {
+            const href = (l as HTMLElement).getAttribute('href') || '';
+            const hash = href.includes('#') ? href.slice(href.indexOf('#')) : '';
+            const target = hash.length > 1 ? document.querySelector(hash) : null;
+            if (!target) return; // not on this page — normal navigation
             e.preventDefault(); sound.nav();
-            goTo(document.querySelector((l as HTMLElement).getAttribute('href')!));
+            goTo(target);
           }));
+
+        // back-to-top (mobile) — appears once the hero (or first viewport) scrolls away
+        const totop = $('#totop');
+        if (totop) {
+          totop.addEventListener('click', () => {
+            sound.nav();
+            if (loco) loco.scrollTo(0, { duration: 0.9 });
+            else scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+          });
+          const hero = document.querySelector('.hero');
+          const show = (on: boolean) => totop.classList.toggle('show', on);
+          if (hero) new IntersectionObserver((es) => show(!es[0].isIntersecting)).observe(hero);
+          else addEventListener('scroll', () => show(scrollY > innerHeight), { passive: true });
+        }
       })();
 
       /* ---------------- reveals (card/section fade-in via .in class) ---------------- */
@@ -474,9 +568,13 @@ const year = new Date().getFullYear();
       /* ---------------- hero entrance on intro end (wordmark decodes; kicker/nav/count decode) ---------------- */
       document.addEventListener('intro:done', () => {
         if (reduce || !A.animate) return;
-        wordmark.play();
         A.animate('#hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
-        setTimeout(() => scramble.hero(), 320);
+        // the decode effects width-lock their glyphs — measure only with the real (self-hosted,
+        // preloaded) fonts, never the fallback's metrics. Resolves near-instantly in practice.
+        document.fonts.ready.then(() => {
+          wordmark.play();
+          setTimeout(() => scramble.hero(), 320);
+        });
       });
 
       /* ---------------- dynamic CRT: transform-only sync-bar roll + glare drift + rare glitch (no per-frame repaint) ---------------- */
@@ -550,15 +648,70 @@ const year = new Date().getFullYear();
 
       /* ---------------- modals + dev toggles + record player ---------------- */
       (function ui() {
-        const open = (id: string) => { $(id)?.classList.add('open'); sound.ping(); };
-        const closeAll = () => document.querySelectorAll('.modal').forEach((m) => m.classList.remove('open'));
-        document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => open('#' + (b as HTMLElement).dataset.open)));
-        document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeAll));
-        document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) closeAll(); }));
+        // ---- accessible modal: move focus in, trap Tab, inert the background, restore focus on close ----
+        const FOCUSABLE = 'a[href],button:not(:disabled),input:not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])';
+        let modalEl: HTMLElement | null = null, opener: HTMLElement | null = null, inerted: HTMLElement[] = [];
+        const openModal = (id: string, from: HTMLElement | null) => {
+          const m = $(id);
+          if (!m || modalEl) return;
+          modalEl = m; opener = from;
+          m.classList.add('open');
+          from?.setAttribute('aria-expanded', 'true');
+          inerted = (Array.from(document.body.children) as HTMLElement[])
+            .filter((c) => c !== m && c.tagName !== 'SCRIPT' && !c.hasAttribute('inert'));
+          inerted.forEach((c) => c.setAttribute('inert', ''));
+          const f = Array.from(m.querySelectorAll(FOCUSABLE)) as HTMLElement[];
+          (f[0] || m).focus({ preventScroll: true });
+          sound.ping();
+        };
+        const closeModal = () => {
+          if (!modalEl) return;
+          const back = opener;
+          modalEl.classList.remove('open');
+          inerted.forEach((c) => c.removeAttribute('inert')); inerted = [];
+          document.querySelectorAll('[data-open][aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+          modalEl = null; opener = null;
+          back?.focus?.({ preventScroll: true });
+        };
+        document.querySelectorAll('[data-open]').forEach((b) =>
+          b.addEventListener('click', (e) => {
+            e.preventDefault(); // the CTA anchors carry a real mailto: fallback for the no-JS path
+            openModal('#' + (b as HTMLElement).dataset.open, b as HTMLElement);
+          }));
+        document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeModal));
+        document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) closeModal(); }));
+        document.addEventListener('keydown', (e) => {
+          if (!modalEl) return;
+          if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+          const focusables = () =>
+            (Array.from(modalEl!.querySelectorAll(FOCUSABLE)) as HTMLElement[]).filter((el) => (el as any).offsetParent !== null);
+          if (e.key === 'Tab') {
+            const f = focusables();
+            if (!f.length) return;
+            const first = f[0], last = f[f.length - 1], a = document.activeElement;
+            if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+            return;
+          }
+          // arrows/paging must not scroll the page behind the dialog; up/down walk the links
+          const k = e.key.toLowerCase();
+          if (['arrowdown', 'arrowup', 'arrowleft', 'arrowright', 'pagedown', 'pageup', 'home', 'end', ' '].includes(k === ' ' ? ' ' : k)) {
+            if ((document.activeElement?.tagName || '').toLowerCase() === 'input') return;
+            e.preventDefault();
+            if (k === 'arrowdown' || k === 'arrowup') {
+              const f = focusables();
+              if (!f.length) return;
+              const i = f.indexOf(document.activeElement as HTMLElement);
+              const next = k === 'arrowdown' ? f[(i + 1 + f.length) % f.length] : f[(i - 1 + f.length) % f.length];
+              next.focus();
+            }
+          }
+        });
 
         const devBtn = $('#dev-btn'), panel = $('#dev-panel');
-        devBtn?.addEventListener('click', () => panel?.classList.toggle('open'));
-        document.addEventListener('click', (e) => { if (panel?.classList.contains('open') && !(e.target as HTMLElement).closest('#controls')) panel.classList.remove('open'); });
+        const setDev = (on: boolean) => { panel?.classList.toggle('open', on); devBtn?.setAttribute('aria-expanded', String(on)); };
+        devBtn?.addEventListener('click', () => setDev(!panel?.classList.contains('open')));
+        document.addEventListener('click', (e) => { if (panel?.classList.contains('open') && !(e.target as HTMLElement).closest('#controls')) setDev(false); });
 
         const bind = (id: string, fn: (on: boolean) => void) => {
           const cb = $(id) as HTMLInputElement | null;
@@ -602,7 +755,12 @@ const year = new Date().getFullYear();
           audio.addEventListener('pause', () => setPlaying(false));
           audio.addEventListener('ended', () => load(idx + 1, true)); // roll through the playlist
         }
-        items.forEach((li, i) => li.addEventListener('click', () => load(i, true)));
+        // each track row is a real <a href={spotify}> (works without JS); with JS alive the
+        // click is upgraded into loading the 30-sec preview in-page. Native anchor = native
+        // keyboard activation, so no Enter/Space shim is needed.
+        items.forEach((li, i) => {
+          li.addEventListener('click', (e) => { e.preventDefault(); load(i, true); });
+        });
         if (items.length) load(0);
       })();
     </script>

@@ -6,8 +6,11 @@ export async function pullSteam(steamId, apiKey, limit = 4) {
   const url =
     `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${apiKey}` +
     `&steamid=${steamId}&include_appinfo=1&include_played_free_games=1&format=json`;
-  const data = await fetch(url).then((r) => r.json());
-  const games = data?.response?.games || [];
+  const data = await fetch(url, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
+  // A malformed/empty response body (rate limit, auth hiccup) must FAIL — not silently
+  // return [] and overwrite the last good list with nothing.
+  if (!data?.response) throw new Error('steam: malformed response (no `response` object)');
+  const games = data.response.games || [];
   return games
     .filter((g) => g.rtime_last_played)
     .sort((a, b) => b.rtime_last_played - a.rtime_last_played)

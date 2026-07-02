@@ -10,6 +10,8 @@
     "prebuild": "node scripts/pull.mjs",
     "build": "astro build",
     "preview": "astro preview",
+    "check": "astro check",
+    "generate": "node scripts/generate.mjs",
     "astro": "astro",
     "cms": "cross-env ENABLE_KEYSTATIC=true astro dev"
   },
@@ -26,11 +28,16 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@astrojs/markdoc": "^2.0.2",
     "@fontsource/chakra-petch": "^5.2.7",
+    "@fontsource/space-mono": "^5.2.9",
+    "@resvg/resvg-js": "^2.6.2",
     "cross-env": "^10.1.0",
     "figlet": "^1.11.0",
     "psn-api": "^2.18.0",
     "rss-parser": "^3.13.0",
+    "satori": "^0.26.0",
     "typescript": "^5.6.3"
   }
 }

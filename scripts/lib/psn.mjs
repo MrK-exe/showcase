@@ -4,11 +4,21 @@
 // reflects what was actually played rather than what earned a trophy.
 import { exchangeNpssoForCode, exchangeCodeForAccessToken, getRecentlyPlayedGames } from 'psn-api';
 
+// psn-api's internal fetches take no AbortSignal, so cap the whole auth+fetch chain with a
+// race — a hung Sony endpoint must not stall the daily cron build indefinitely.
+const deadline = (ms) =>
+  new Promise((_, reject) => setTimeout(() => reject(new Error(`psn: timed out after ${ms}ms`)), ms).unref?.());
+
 export async function pullPsn(npsso, limit = 4) {
   if (!npsso) return [];
-  const accessCode = await exchangeNpssoForCode(npsso);
-  const authorization = await exchangeCodeForAccessToken(accessCode);
-  const res = await getRecentlyPlayedGames(authorization, { limit: 12 });
+  const res = await Promise.race([
+    (async () => {
+      const accessCode = await exchangeNpssoForCode(npsso);
+      const authorization = await exchangeCodeForAccessToken(accessCode);
+      return getRecentlyPlayedGames(authorization, { limit: 12 });
+    })(),
+    deadline(45000),
+  ]);
   const games = res?.data?.gameLibraryTitlesRetrieve?.games || [];
   return games
     .slice()

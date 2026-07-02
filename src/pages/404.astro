@@ -1,0 +1,13 @@
+---
+import Experience from '../layouts/Experience.astro';
+import { site } from '../config/site.config';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Experience title={`404 — not found — ${site.name}`} noindex>
+  <section class="notfound">
+    <p class="notfound__code lab">error 404 · signal lost</p>
+    <h1 class="notfound__title">This page doesn't exist.</h1>
+    <p class="notfound__body">The address is wrong, or whatever was here has moved.</p>
+    <a class="btn btn--accent notfound__home" href={base} data-mag>← back to index</a>
+  </section>
+</Experience>

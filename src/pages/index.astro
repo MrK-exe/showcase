@@ -1,13 +1,15 @@
 ---
 import Experience from '../layouts/Experience.astro';
 import Section from '../components/Section.astro';
+import type { Group } from '../components/Section.astro';
 import RecordPlayer from '../components/RecordPlayer.astro';
 import { sections, site, sources } from '../config/site.config';
 import { getCollection } from 'astro:content';
 import { getWriting, getFilms, getLastPlayed, getTopGames } from '../lib/data';
 
-const base = import.meta.env.BASE_URL; // '/showcase/'
-const asset = (p?: string | null) => (!p ? null : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
+const asset = (p?: string | null) => (!p ? undefined : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
+const img = (p?: string | null) => p ?? undefined; // Card wants string | undefined, feeds carry null
 const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
 
 // ── authored / uploaded collections (CMS) ──
@@ -23,13 +25,14 @@ const lastPlayed = getLastPlayed();
 const topGames = getTopGames();
 
 // Build the card groups for each section id. Every section uses the one Card primitive.
-function groupsFor(id: string) {
+// Typed end-to-end: each card literal is checked against Card's Props (no `any` seam).
+function groupsFor(id: string): Group[] {
   switch (id) {
     case 'work':
       return [{
         variant: 'row',
         cards: workEntries.slice(0, 5).map((e) => ({
-          variant: 'row', title: e.data.title, subtitle: e.data.summary, status: e.data.status,
+          variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: e.data.status,
           date: e.data.date, links: [{ label: 'Open', href: `${base}work/${e.id}` }],
         })),
       }];
@@ -37,7 +40,7 @@ function groupsFor(id: string) {
       return [{
         variant: 'wide',
         cards: writing.slice(0, 4).map((w) => ({
-          variant: 'wide', image: w.image, title: w.title,
+          variant: 'wide' as const, image: img(w.image), title: w.title,
           date: w.date ? new Date(w.date) : undefined,
           links: [{ label: 'Read on Substack', href: w.link }],
         })),
@@ -46,7 +49,7 @@ function groupsFor(id: string) {
       return [{
         variant: 'photo',
         cards: photoEntries.slice(0, 4).map((p) => ({
-          variant: 'photo', image: asset(p.data.image), title: p.data.caption ?? '',
+          variant: 'photo' as const, image: asset(p.data.image), title: p.data.caption ?? '',
           date: p.data.date, links: p.data.instagramUrl ? [{ label: 'Instagram', href: p.data.instagramUrl }] : [],
         })),
       }];
@@ -55,14 +58,14 @@ function groupsFor(id: string) {
         {
           label: 'Favorites', variant: 'poster',
           cards: films.favorites.slice(0, 4).map((f) => ({
-            variant: 'poster', image: f.poster, title: f.title, rating: f.rating ?? undefined,
+            variant: 'poster' as const, image: img(f.poster), title: f.title, rating: f.rating ?? undefined,
             links: f.link ? [{ label: 'Letterboxd', href: f.link }] : [],
           })),
         },
         {
           label: 'Recent reviews', variant: 'poster',
           cards: films.reviews.slice(0, 4).map((r) => ({
-            variant: 'poster', image: r.poster, title: r.title, subtitle: r.excerpt, rating: r.rating ?? undefined,
+            variant: 'poster' as const, image: img(r.poster), title: r.title, subtitle: r.excerpt, rating: r.rating ?? undefined,
             date: r.watchedDate ? new Date(r.watchedDate) : undefined,
             links: r.link ? [{ label: 'Letterboxd', href: r.link }] : [],
           })),
@@ -73,7 +76,7 @@ function groupsFor(id: string) {
         {
           label: 'Reviews', variant: 'poster',
           cards: reviewEntries.slice(0, 4).map((g) => ({
-            variant: 'poster', image: asset(g.data.cover), title: g.data.title,
+            variant: 'poster' as const, image: asset(g.data.cover), title: g.data.title,
             subtitle: g.data.excerpt, rating: g.data.rating,
             links: [{ label: 'Read', href: `${base}games/${g.id}` }],
           })),
@@ -81,21 +84,21 @@ function groupsFor(id: string) {
         {
           label: 'Top 4', variant: 'poster',
           cards: topGames.slice(0, 4).map((g) => ({
-            variant: 'poster', image: asset(g.cover), title: g.title,
+            variant: 'poster' as const, image: img(g.cover), title: g.title,
             rating: g.rating != null ? Number(g.rating) : undefined,
           })),
         },
         {
           label: 'Steam · recently played', variant: 'poster',
           cards: lastPlayed.steam.slice(0, 4).map((g) => ({
-            variant: 'poster', image: g.cover, title: g.name, status: 'Steam',
+            variant: 'poster' as const, image: img(g.cover), title: g.name, status: 'Steam',
             date: g.lastPlayed ? new Date(g.lastPlayed) : undefined,
           })),
         },
         {
           label: 'PlayStation · recently played', variant: 'poster',
           cards: lastPlayed.psn.slice(0, 4).map((g) => ({
-            variant: 'poster', image: g.cover, title: g.name, status: g.platform ?? 'PSN',
+            variant: 'poster' as const, image: img(g.cover), title: g.name, status: g.platform ?? 'PSN',
             date: g.lastPlayed ? new Date(g.lastPlayed) : undefined,
           })),
         },
@@ -122,12 +125,22 @@ const enabled = sections.filter((s) => s.enabled);
 <Experience>
   <header class="hero" id="top">
     <p class="hero__kicker" data-scramble="periodic">{site.tagline}</p>
-    <h1 class="hero__word" id="word"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
+    <h1 class="hero__word" id="word" aria-label="Abdullah Aletai"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
+
+    {site.positioning && <p class="hero__positioning">{site.positioning}</p>}
+    {site.bio && <p class="hero__bio">{site.bio}</p>}
+
+    <div class="hero__cta">
+      {/* real mailto link so contact works with JS off/failed; JS upgrades it to the connect modal */}
+      <a class="btn btn--accent" href={`mailto:${site.email}`} data-open="connect-modal" data-mag aria-haspopup="dialog" aria-expanded="false">contact</a>
+      {site.cvUrl && <a class="btn" href={asset(site.cvUrl)} data-mag>cv ↓</a>}
+      {site.availability && <span class="hero__avail lab">{site.availability}</span>}
+    </div>
 
     <nav class="hero__links" id="hero-links" aria-label="Jump to section">
       {enabled.map((s, i) => (
         <a href={`#${s.id}`} data-sectlink data-mag>
-          <span class="hl-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><span class="navlink__t" data-scramble="hover periodic">{s.title}</span>
+          <span class="hl-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><span class="navlink__t" data-scramble="hover">{s.title}</span>
         </a>
       ))}
     </nav>
