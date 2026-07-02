@@ -1,6 +1,6 @@
 @echo off
 setlocal
-rem ── Publish: stage everything, commit, push. CI builds + deploys in ~5 min. ──
+rem ?????? Publish: stage everything, commit, push. CI builds + deploys in ~5 min. ??????
 cd /d "%~dp0"
 
 git add -A
