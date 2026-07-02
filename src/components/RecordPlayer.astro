@@ -1,8 +1,10 @@
 ---
 import { getMusic } from '../lib/data';
+import { isSafeHref } from '../lib/safe';
 interface Props { num: string; id: string; title: string; meta?: string; weight?: string }
 const { num, id, title, meta, weight = 'compact' } = Astro.props;
-const tracks = getMusic();
+// spotifyUrl flows from a CMS singleton through the pull pipeline — allowlist the scheme
+const tracks = getMusic().map((t) => ({ ...t, spotifyUrl: isSafeHref(t.spotifyUrl) ? t.spotifyUrl : '' }));
 const first = tracks[0];
 ---
 <section class={`section section--${weight}`} id={id} data-section>

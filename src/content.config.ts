@@ -11,7 +11,8 @@ const work = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.coerce.date().optional(),
-    status: z.string().optional(),
+    // mirrors the Keystatic select — a hand-edited file can't ship an unknown status
+    status: z.enum(['shipped', 'wip', 'archived']).optional(),
     summary: z.string().optional(),
     tags: z.array(z.string()).default([]),
   }),
@@ -37,7 +38,8 @@ const photos = defineCollection({
     image: z.string(),
     caption: z.string().optional(),
     date: z.coerce.date().optional(),
-    instagramUrl: z.string().optional(),
+    // mirrors the Keystatic url field — must be a real URL when present
+    instagramUrl: z.string().url().optional().or(z.literal('')),
   }),
 });
 

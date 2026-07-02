@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import markdoc from '@astrojs/markdoc';
+import sitemap from '@astrojs/sitemap';
 
 // Keystatic admin is server-rendered, so it only loads in local CMS mode
 // (`npm run cms`). The GitHub Pages build stays a pure static site.
@@ -28,6 +29,7 @@ export default defineConfig({
   // Base only in the static build; in CMS mode the admin stays at the standard /keystatic.
   site: 'https://mrk-exe.github.io',
   base: KS ? '/' : '/showcase',
-  integrations: [markdoc(), ...keystaticIntegrations],
+  // sitemap only makes sense for the deployed static site, not the local CMS server
+  integrations: [markdoc(), ...(KS ? keystaticIntegrations : [sitemap()])],
   ...keystaticExtras,
 });

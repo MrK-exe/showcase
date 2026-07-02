@@ -1,4 +1,6 @@
 ---
+import { isSafeHref } from '../lib/safe';
+
 export interface Link { label: string; href: string }
 export interface Props {
   variant?: 'poster' | 'wide' | 'square' | 'photo' | 'row';
@@ -17,6 +19,8 @@ const {
   variant = 'wide', image, kicker, title, subtitle, date,
   tags = [], rating, status, progress, links = [],
 } = Astro.props;
+// CMS/feed-supplied URLs — render only allowlisted schemes (see lib/safe)
+const safeLinks = links.filter((l) => isSafeHref(l.href));
 
 const ratio: Record<string, string> = {
   poster: '2 / 3', wide: '16 / 9', square: '1 / 1', photo: '3 / 2', row: '',
@@ -34,7 +38,7 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
 <article class={`card card--${variant}`}>
   {variant !== 'row' && (
     <div class="card__media" style={ratio ? `aspect-ratio:${ratio}` : undefined}>
-      {image ? <img src={image} alt={title} loading="lazy" /> : <span class="card__ph">no image</span>}
+      {image ? <img src={image} alt={title} loading="lazy" decoding="async" /> : <span class="card__ph">no image</span>}
       {status && <span class="card__status">{status}</span>}
     </div>
   )}
@@ -49,8 +53,8 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
       </div>
     )}
     {metaBits && <p class="card__meta">{metaBits}</p>}
-    {links.length > 0 && (
-      <p class="card__links">{links.map((l) => <a href={l.href}>{l.label} ↗</a>)}</p>
+    {safeLinks.length > 0 && (
+      <p class="card__links">{safeLinks.map((l) => <a href={l.href}>{l.label} ↗</a>)}</p>
     )}
   </div>
 </article>

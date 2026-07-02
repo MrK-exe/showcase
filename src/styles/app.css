@@ -287,6 +287,9 @@ body.no-crt #sync { display: none; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal { opacity: 1 !important; transform: none !important; filter: none !important; transition: none; }
+  /* no lerping reticle — hand the pointer back to the OS */
+  #cur { display: none; }
+  body, body * { cursor: auto; }
 }
 
 /* ---------- primary CTA button variants (INIT-03) ---------- */

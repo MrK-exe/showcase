@@ -1,0 +1,16 @@
+# Keeps the SHA-pinned actions and npm deps patched via weekly PRs
+# (the PR-triggered build job type-checks + builds them before merge).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

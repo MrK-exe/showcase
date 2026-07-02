@@ -19,12 +19,21 @@ const parser = new Parser({
 const parseEntry = (it) => {
   const html = it.content || it['content:encoded'] || it.description || '';
   const poster = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || null;
-  // strip the poster image + tags → plain review text
+  // strip the poster image + tags → plain review text; drop Letterboxd's platform
+  // boilerplate so it never ships on a card as if it were the review's opening line
   const text = html
     .replace(/<img[^>]*>/gi, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    .replace(/^this review may contain spoilers\.?\s*/i, '');
+  // truncate on a word boundary — never mid-word
+  let excerpt = text;
+  if (text.length > 240) {
+    const cut = text.slice(0, 240);
+    const space = cut.lastIndexOf(' ');
+    excerpt = cut.slice(0, space > 180 ? space : 237).trimEnd() + '…';
+  }
   const rating = it.memberRating != null && it.memberRating !== '' ? Number(it.memberRating) : null;
   return {
     title: it.filmTitle || (it.title || '').replace(/,\s*\d{4}.*$/, '') || 'Untitled',
@@ -33,7 +42,7 @@ const parseEntry = (it) => {
     watchedDate: it.watchedDate || it.isoDate || it.pubDate || null,
     link: it.link || '',
     poster,
-    excerpt: text.length > 240 ? text.slice(0, 237).trimEnd() + '…' : text,
+    excerpt,
     isReview: text.length > 0,
   };
 };

@@ -15,54 +15,68 @@ import { site, links as defaultLinks } from '../config/site.config';
 import Nav from '../components/Nav.astro';
 import banner from '../generated/banner.txt?raw';
 import { getConnectLinks } from '../lib/data';
+import { isSafeHref } from '../lib/safe';
 
 interface Props { title?: string; description?: string; noindex?: boolean }
 const { title, description: descProp, noindex = false } = Astro.props;
 const pageTitle = title || `${site.name} — ${site.tagline}`;
-const description = descProp || `${site.author} — ${site.tagline}`;
+const description = descProp || site.description;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');    // guarantee trailing slash
 // Per-page canonical: Astro.url.pathname carries the page's own path (incl. base) at build
 // time, so detail pages canonicalize to themselves — not to the homepage.
 const canonical = new URL(Astro.url.pathname.replace(/\/?$/, '/'), site.url).href;
 const ogImage = site.url + base + 'og.png';
 // Connect links: CMS singleton if present, else the defaults in site.config.
-const links = getConnectLinks(defaultLinks);
+// Scheme-allowlisted — a poisoned CMS value must never render as a clickable href.
+const links = getConnectLinks(defaultLinks).filter((l) => isSafeHref(l.href));
 const year = new Date().getFullYear();
-// Person structured data for search + rich results
-const personLd = {
+const home = site.url + base; // https://mrk-exe.github.io/showcase/
+// Person + WebSite structured data for search + rich results
+const ld = {
   '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: site.author,
-  url: canonical,
-  description: site.tagline,
-  sameAs: links.filter((l) => /^https?:/.test(l.href)).map((l) => l.href),
+  '@graph': [
+    {
+      '@type': 'Person',
+      '@id': home + '#person',
+      name: site.author,
+      url: home,
+      image: ogImage,
+      jobTitle: site.tagline,
+      description: site.description,
+      sameAs: links.filter((l) => /^https?:/.test(l.href)).map((l) => l.href),
+    },
+    {
+      '@type': 'WebSite',
+      '@id': home + '#website',
+      url: home,
+      name: site.name,
+      description: site.description,
+      publisher: { '@id': home + '#person' },
+    },
+  ],
 };
+// escape `<` so no link/label value can ever break out of the <script> data block
+const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Defense-in-depth: GitHub Pages can't set headers, so CSP/referrer policy ride as metas.
+         script-src 'self' works because ALL scripts are same-origin files (boot.js below +
+         Astro's bundled module); style 'unsafe-inline' covers Astro's scoped <style> and the
+         style attributes the motion code writes. JSON-LD data blocks are exempt from CSP. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src https:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <!-- Progressive enhancement: mark JS active before paint, and guarantee the boot overlay,
          opacity:0 reveals, and hidden cursor can never leave a permanent black screen if the
-         enhancement bundle is slow or fails to load. See app.css (html:not(.js) / html.fallback). -->
-    <script is:inline>
-      (function () {
-        var d = document.documentElement;
-        d.classList.add('js');
-        addEventListener('load', function () {
-          setTimeout(function () {
-            var intro = document.getElementById('intro');
-            if (intro && !intro.classList.contains('off')) {
-              d.classList.add('fallback');
-              intro.classList.add('off');
-              document.dispatchEvent(new Event('intro:done'));
-              setTimeout(function () { intro.remove(); }, 700);
-            }
-          }, 3500);
-        });
-      })();
-    </script>
+         enhancement bundle is slow or fails to load. Blocking classic script by design —
+         external (not inline) so the CSP needs no brittle hand-maintained hashes. -->
+    <script is:inline src={base + 'boot.js'}></script>
     <noscript>
       <style>
         #intro, #cur, #sync, #glass { display: none !important; }
@@ -89,7 +103,8 @@ const personLd = {
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <script type="application/ld+json" set:html={JSON.stringify(personLd)} />
+    <meta name="twitter:image:alt" content={`${site.name} — ${site.tagline}`} />
+    <script type="application/ld+json" set:html={ldJson} />
     <!-- fonts are self-hosted (see @fontsource imports); preload the hero's display weight -->
     <link rel="preload" as="font" type="font/woff2" href={chakra700Url} crossorigin />
   </head>
@@ -120,7 +135,8 @@ const personLd = {
         <div id="dev-panel" role="group" aria-label="Display options">
           <label class="tog" data-mag><input type="checkbox" id="t-sound" checked /><span class="box"></span><span>sound</span></label>
           <label class="tog" data-mag><input type="checkbox" id="t-crt" checked /><span class="box"></span><span>scanlines</span></label>
-          <label class="tog" data-mag><input type="checkbox" id="t-curve" checked /><span class="box"></span><span>curvature</span></label>
+          <!-- curvature is opt-in (PLAN: heavy optical effects OFF by default) -->
+          <label class="tog" data-mag><input type="checkbox" id="t-curve" /><span class="box"></span><span>curvature</span></label>
         </div>
       </div>
     </div>
@@ -167,7 +183,7 @@ const personLd = {
       const goTo = (el: Element | null) => {
         if (!el) return;
         if (loco) loco.scrollTo(el as HTMLElement, { offset: -80, duration: 0.9 });
-        else (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else (el as HTMLElement).scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
       };
 
       /* ---------------- build-log boot intro (one-time per session, accessible skip, Y2K bars) ---------------- */
@@ -300,22 +316,36 @@ const personLd = {
         document.addEventListener('focusout', () => { focusEl = null; });
         addEventListener('mousedown', () => { cur.classList.add('flash'); setTimeout(() => cur.classList.remove('flash'), 140); });
 
-        (function loop() {
-          const raw = ((mode as string) === 'key' ? (focusEl || hoverEl) : hoverEl) as HTMLElement | null;
-          // a hidden 0×0 toggle input (or its label) should frame the visible .tog row
-          const t = ((raw && raw.closest && raw.closest('.tog')) as HTMLElement | null) || raw;
-          let tx, ty, tw, th;
-          if (t && document.body.contains(t)) {
-            const r = t.getBoundingClientRect();
-            tx = r.left + r.width / 2; ty = r.top + r.height / 2; tw = r.width + 14; th = r.height + 12;
-            cur.classList.add('hot');
-          } else { tx = mx; ty = my; tw = 22; th = 22; cur.classList.remove('hot'); }
-          cx += (tx - cx) * 0.28; cy += (ty - cy) * 0.28; cw += (tw - cw) * 0.32; ch += (th - ch) * 0.32;
-          cur.style.transform = `translate(${cx}px,${cy}px)`;
-          cur.style.width = cw + 'px'; cur.style.height = ch + 'px';
-          cur.style.marginLeft = -cw / 2 + 'px'; cur.style.marginTop = -ch / 2 + 'px';
-          requestAnimationFrame(loop);
-        })();
+        // The visual reticle loop is skipped under reduced motion (CSS restores the native
+        // cursor); hover/focus tracking + the spatial keyboard nav below still run.
+        // Lifecycle care: the rAF pauses while the tab is hidden, and style writes are
+        // skipped once the lerp has settled (no busy-work between interactions).
+        if (!reduce) {
+          let rafOn = false;
+          const loop = () => {
+            const raw = ((mode as string) === 'key' ? (focusEl || hoverEl) : hoverEl) as HTMLElement | null;
+            // a hidden 0×0 toggle input (or its label) should frame the visible .tog row
+            const t = ((raw && raw.closest && raw.closest('.tog')) as HTMLElement | null) || raw;
+            let tx, ty, tw, th;
+            if (t && document.body.contains(t)) {
+              const r = t.getBoundingClientRect();
+              tx = r.left + r.width / 2; ty = r.top + r.height / 2; tw = r.width + 14; th = r.height + 12;
+              cur.classList.add('hot');
+            } else { tx = mx; ty = my; tw = 22; th = 22; cur.classList.remove('hot'); }
+            const settled = Math.abs(tx - cx) < 0.1 && Math.abs(ty - cy) < 0.1 && Math.abs(tw - cw) < 0.1 && Math.abs(th - ch) < 0.1;
+            if (!settled) {
+              cx += (tx - cx) * 0.28; cy += (ty - cy) * 0.28; cw += (tw - cw) * 0.32; ch += (th - ch) * 0.32;
+              cur.style.transform = `translate(${cx}px,${cy}px)`;
+              cur.style.width = cw + 'px'; cur.style.height = ch + 'px';
+              cur.style.marginLeft = -cw / 2 + 'px'; cur.style.marginTop = -ch / 2 + 'px';
+            }
+            if (document.hidden) { rafOn = false; return; }
+            requestAnimationFrame(loop);
+          };
+          const start = () => { if (!rafOn) { rafOn = true; requestAnimationFrame(loop); } };
+          document.addEventListener('visibilitychange', () => { if (!document.hidden) start(); });
+          start();
+        }
 
         // spatial keyboard navigation (arrows + WASD)
         const DIR: Record<string, string> = { arrowup: 'u', arrowdown: 'd', arrowleft: 'l', arrowright: 'r', w: 'u', s: 'd', a: 'l', d: 'r' };
@@ -645,6 +675,22 @@ const personLd = {
           if (!seen) setTimeout(() => { show(); try { localStorage.setItem(KEY, '1'); } catch (_) {} }, 900);
         });
       })();
+
+      /* ---------------- hotlinked-image rot: swap a failed card image for the placeholder ----------------
+         (delegated capture listener — inline onerror handlers would violate the CSP) */
+      document.addEventListener('error', (e) => {
+        const img = e.target as HTMLElement;
+        if (!img || img.tagName !== 'IMG') return;
+        const media = img.closest('.card__media');
+        if (!media) return;
+        img.remove();
+        if (!media.querySelector('.card__ph')) {
+          const ph = document.createElement('span');
+          ph.className = 'card__ph';
+          ph.textContent = 'no image';
+          media.prepend(ph);
+        }
+      }, true);
 
       /* ---------------- modals + dev toggles + record player ---------------- */
       (function ui() {

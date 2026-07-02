@@ -26,6 +26,9 @@ export const site = {
   url: 'https://mrk-exe.github.io',
   email: 'abdullahk.aletai@gmail.com',
   tagline: 'filmmaker · developer · writer',
+  // search/share snippet — deliberately distinct from the <title> (which is name + tagline)
+  description:
+    'The index of Abdullah Aletai — films, software builds, writing, photography, games, and music, in one place.',
 
   // ── hireability scaffold (INIT-03) — everything below is hidden while '' so no
   //    placeholder copy can ever ship. Fill in real text to light each piece up. ──
