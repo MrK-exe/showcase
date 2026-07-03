@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import Experience from '../../layouts/Experience.astro';
+import Section from '../../components/Section.astro';
+import { site, sections } from '../../config/site.config';
+import { byOrderThenDate } from '../../lib/sort';
+
+// Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (same reasoning
+// as [...slug].astro, which would otherwise shadow this path in CMS mode).
+export const prerender = true;
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
+const entries = (await getCollection('work')).sort(byOrderThenDate);
+// carry the same section number Work has on the homepage — this page reads as that
+// section expanded, not as a new section
+const num = String(sections.filter((s) => s.enabled).findIndex((s) => s.id === 'work') + 1).padStart(2, '0');
+---
+<Experience title={`Work — ${site.name}`} description={`Every entry in ${site.name}'s work dev log.`}>
+  <div class="backbar">
+    <a class="detail__back lab" href={`${base}#work`} data-mag>← index</a>
+  </div>
+  <Section
+    num={num}
+    id="work"
+    title="Work"
+    meta={`dev log · all ${entries.length}`}
+    weight="lead"
+    groups={[{
+      variant: 'row',
+      cards: entries.map((e) => ({
+        variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: e.data.status,
+        date: e.data.date, links: [{ label: 'Open', href: `${base}work/${e.id}` }],
+      })),
+    }]}
+    empty="No entries yet."
+  />
+</Experience>
