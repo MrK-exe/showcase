@@ -4,6 +4,8 @@ import Parser from 'rss-parser';
 
 const parser = new Parser({
   timeout: 15000,
+  // descriptive UA — rss-parser's default gets bot-filtered from datacenter IPs (see substack.mjs)
+  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; showcase-build; +https://mrk-exe.github.io/showcase/)' },
   customFields: {
     item: [
       ['letterboxd:filmTitle', 'filmTitle'],
@@ -48,7 +50,12 @@ const parseEntry = (it) => {
 };
 
 export async function pullLetterboxd(user, limit = 8) {
-  const feed = await parser.parseURL(`https://letterboxd.com/${user}/rss/`);
+  const url = `https://letterboxd.com/${user}/rss/`;
+  // one retry — this feed flakes on timeouts, and a failed pull blanks the section until the next build
+  const feed = await parser.parseURL(url).catch(async () => {
+    await new Promise((r) => setTimeout(r, 2000));
+    return parser.parseURL(url);
+  });
   const entries = (feed.items || []).map(parseEntry);
   // prefer entries that carry actual review prose; fall back to plain diary entries if sparse
   const reviews = entries.filter((e) => e.isReview);
