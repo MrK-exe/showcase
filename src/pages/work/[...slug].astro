@@ -19,9 +19,9 @@ const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
 const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
-const dateStr = entry.data.date
-  ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' }).format(entry.data.date)
-  : null;
+const fmt = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' });
+const dateStr = entry.data.date ? fmt.format(entry.data.date) : null;
+const updatedStr = entry.data.updated ? fmt.format(entry.data.updated) : null;
 ---
 <Experience title={`${entry.data.title} — Work — ${site.name}`} description={entry.data.summary || undefined}>
   <article class="detail">
@@ -29,7 +29,7 @@ const dateStr = entry.data.date
     <header class="detail__head">
       <p class="detail__kick lab">Work · dev log{entry.data.status ? ` · ${entry.data.status}` : ''}</p>
       <h1 class="detail__title">{entry.data.title}</h1>
-      {dateStr && <p class="detail__meta lab">{dateStr}</p>}
+      {dateStr && <p class="detail__meta lab">{dateStr}{updatedStr && ` · updated ${updatedStr}`}</p>}
       {entry.data.summary && <p class="detail__summary">{entry.data.summary}</p>}
       {entry.data.tags.length > 0 && (
         <ul class="detail__tags">{entry.data.tags.map((t) => <li>{t}</li>)}</ul>
