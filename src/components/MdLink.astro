@@ -1,0 +1,10 @@
+---
+// Prose link inside Markdoc bodies (game reviews / work entries). External http(s)
+// links open in a new tab — same rule as everywhere else on the site (lib/safe).
+import { externalAttrs, isSafeHref } from '../lib/safe';
+
+interface Props { href?: string }
+const { href, ...rest } = Astro.props;
+const safe = isSafeHref(href) ? href : undefined;
+---
+{safe ? <a href={safe} {...externalAttrs(safe)} {...rest}><slot /></a> : <slot />}

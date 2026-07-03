@@ -133,7 +133,8 @@ const enabled = sections.filter((s) => s.enabled);
     <div class="hero__cta">
       {/* real mailto link so contact works with JS off/failed; JS upgrades it to the connect modal */}
       <a class="btn btn--accent" href={`mailto:${site.email}`} data-open="connect-modal" data-mag aria-haspopup="dialog" aria-expanded="false">contact</a>
-      {site.cvUrl && <a class="btn" href={asset(site.cvUrl)} data-mag>cv ↓</a>}
+      {/* the CV is a document, not a page — new tab so it never replaces the site */}
+      {site.cvUrl && <a class="btn" href={asset(site.cvUrl)} target="_blank" rel="noopener" data-mag>cv ↓</a>}
       {site.availability && <span class="hero__avail lab">{site.availability}</span>}
     </div>
 

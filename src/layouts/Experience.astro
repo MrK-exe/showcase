@@ -15,7 +15,7 @@ import { site, links as defaultLinks } from '../config/site.config';
 import Nav from '../components/Nav.astro';
 import banner from '../generated/banner.txt?raw';
 import { getConnectLinks } from '../lib/data';
-import { isSafeHref } from '../lib/safe';
+import { externalAttrs, isSafeHref } from '../lib/safe';
 
 interface Props { title?: string; description?: string; noindex?: boolean }
 const { title, description: descProp, noindex = false } = Astro.props;
@@ -161,7 +161,7 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
       <div class="sheet">
         <h3 id="connect-title">Get in touch <button class="xbtn" type="button" data-close data-mag aria-label="Close">✕</button></h3>
         <div class="linklist">
-          {links.map((l) => <a href={l.href} data-mag>{l.label} <span class="acc">↗</span></a>)}
+          {links.map((l) => <a href={l.href} {...externalAttrs(l.href)} data-mag>{l.label} <span class="acc">↗</span></a>)}
         </div>
       </div>
     </div>

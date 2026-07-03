@@ -62,7 +62,7 @@ const first = tracks[0];
               data-spotify={t.spotifyUrl}
             >
               {/* real link (Spotify) without JS; upgraded to an in-page preview control by JS */}
-              <a class="rp__track" href={t.spotifyUrl}>
+              <a class="rp__track" href={t.spotifyUrl} target="_blank" rel="noopener">
                 <span>{String(i + 1).padStart(2, '0')} · {t.title}</span>
                 <span class="lab">{t.preview ? '0:30' : 'spotify'}</span>
               </a>

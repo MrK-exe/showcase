@@ -1,7 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
-import { isSafeHref } from '../lib/safe';
+import { externalAttrs, isSafeHref } from '../lib/safe';
 
 export interface Link { label: string; href: string }
 export interface Props {
@@ -79,7 +79,7 @@ const metaBits = [dateStr, ...tags].filter(Boolean).join(' · ');
     )}
     {metaBits && <p class="card__meta">{metaBits}</p>}
     {safeLinks.length > 0 && (
-      <p class="card__links">{safeLinks.map((l) => <a href={l.href}>{l.label} ↗</a>)}</p>
+      <p class="card__links">{safeLinks.map((l) => <a href={l.href} {...externalAttrs(l.href)}>{l.label} ↗</a>)}</p>
     )}
   </div>
 </article>

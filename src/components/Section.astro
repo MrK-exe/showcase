@@ -1,6 +1,7 @@
 ---
 import Card from './Card.astro';
 import type { Props as CardProps } from './Card.astro';
+import { externalAttrs } from '../lib/safe';
 
 export interface Group { label?: string; variant?: string; cards: CardProps[] }
 interface Props {
@@ -23,7 +24,7 @@ const hasItems = groups.some((g) => g.cards.length > 0);
     <h2 class="section__title" data-scramble="reveal">{title}</h2>
     {meta && <span class="section__meta" data-scramble="reveal">{meta}</span>}
     {viewAllHref && hasItems && (
-      <a class="section__all" href={viewAllHref} data-mag>{viewAllLabel} <span class="acc">↗</span></a>
+      <a class="section__all" href={viewAllHref} {...externalAttrs(viewAllHref)} data-mag>{viewAllLabel} <span class="acc">↗</span></a>
     )}
   </header>
 
