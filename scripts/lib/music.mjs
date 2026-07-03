@@ -10,13 +10,22 @@ const canonical = (url) => {
 
 const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// og:description is scraped from raw HTML, so entities arrive encoded
+// ("Joey Valence &amp; Brae") and would poison the iTunes artist check.
+const unescapeHtml = (s) =>
+  (s || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
 async function spotifyMeta(url) {
   const oembed = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
   let artist = '';
   try {
     const html = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
     const desc = (html.match(/<meta property="og:description" content="([^"]*)"/) || [])[1] || '';
-    artist = desc.split(' · ')[0].trim();
+    artist = unescapeHtml(desc.split(' · ')[0].trim());
   } catch { /* artist optional — title-only match still works */ }
   return { title: oembed.title || '', artist, art: oembed.thumbnail_url || null };
 }
@@ -27,21 +36,33 @@ async function itunesMatch(artist, title) {
   // full title misses. Search with the base title; match base-first, full-title when it
   // happens to agree.
   const baseTitle = title.split(' - ')[0].trim() || title;
-  const term = encodeURIComponent(`${artist} ${baseTitle}`.trim());
-  const data = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
-  const results = data.results || [];
+  // Spotify lists collaborators as "A, B"; iTunes search chokes on the comma list, so
+  // query with the primary artist and verify against ANY listed artist.
+  const artists = (artist || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const search = async (term) => {
+    const data = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
+    return data.results || [];
+  };
   const want = norm(title);
   const wantBase = norm(baseTitle);
-  const wantArtist = norm(artist);
-  // when the artist is known, the match must agree on it — a blind results[0] can attach
-  // the wrong song's 30-sec preview to the track. No artist scraped → title-only match,
-  // but never a fallback to an arbitrary first result.
+  // when the artist is known, the match must agree on one of them — a blind results[0]
+  // can attach the wrong song's 30-sec preview to the track. No artist scraped →
+  // title-only match, but never a fallback to an arbitrary first result.
   const artistOk = (r) =>
-    !wantArtist || norm(r.artistName).includes(wantArtist) || wantArtist.includes(norm(r.artistName));
-  const hit =
+    !artists.length ||
+    artists.some((a) => {
+      const na = norm(a);
+      const rn = norm(r.artistName);
+      return na && (rn.includes(na) || na.includes(rn));
+    });
+  const pick = (results) =>
     results.find((r) => norm(r.trackName) === want && artistOk(r)) ||
     results.find((r) => norm(r.trackName) === wantBase && artistOk(r)) ||
     results.find((r) => norm(r.trackName).includes(wantBase) && artistOk(r));
+  let hit = pick(await search(`${artists[0] || ''} ${baseTitle}`.trim()));
+  // artist+title found nothing artist-approved → title-only search (odd artist strings,
+  // features, stylized names); the artist check still gates every candidate.
+  if (!hit && artists.length) hit = pick(await search(baseTitle));
   if (!hit) return { preview: null, art: null };
   return {
     preview: hit.previewUrl || null,
