@@ -269,10 +269,10 @@ body.no-crt #sync { display: none; }
 .rp__art { position: absolute; inset: 42px; border-radius: 50%; overflow: hidden; background: var(--acc); background-size: cover; background-position: center; }
 .rp__hole { position: absolute; inset: 69px; border-radius: 50%; background: var(--bone); border: 1px solid #0a0908; }
 .rp__meta { text-align: center; }
-/* one line + ellipsis: JS swaps these on track change, so wrapping would make the
-   deck (and everything below it) jump in height per track */
-.rp__title { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rp__artist { margin: 2px 0 0; font-size: 11px; color: var(--mut); max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* FIXED width (not max-) + one line + ellipsis: JS swaps these on track change, so any
+   text-driven sizing would make the deck column resize and everything around it shift */
+.rp__title { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin: 0; width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp__artist { margin: 2px 0 0; font-size: 11px; color: var(--mut); width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rp__panel { min-width: 240px; flex: 1; }
 .rp__controls { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .rp__btn { width: 84px; }   /* fixed so play/pause never resizes */

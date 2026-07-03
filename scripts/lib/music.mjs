@@ -22,10 +22,16 @@ async function spotifyMeta(url) {
 }
 
 async function itunesMatch(artist, title) {
-  const term = encodeURIComponent(`${artist} ${title}`.trim());
+  // Spotify suffixes version info after ' - ' ("Hotel California - 2013 Remaster");
+  // iTunes writes it differently ("Hotel California (Remastered)"), so matching on the
+  // full title misses. Search with the base title; match base-first, full-title when it
+  // happens to agree.
+  const baseTitle = title.split(' - ')[0].trim() || title;
+  const term = encodeURIComponent(`${artist} ${baseTitle}`.trim());
   const data = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
   const results = data.results || [];
   const want = norm(title);
+  const wantBase = norm(baseTitle);
   const wantArtist = norm(artist);
   // when the artist is known, the match must agree on it — a blind results[0] can attach
   // the wrong song's 30-sec preview to the track. No artist scraped → title-only match,
@@ -34,7 +40,8 @@ async function itunesMatch(artist, title) {
     !wantArtist || norm(r.artistName).includes(wantArtist) || wantArtist.includes(norm(r.artistName));
   const hit =
     results.find((r) => norm(r.trackName) === want && artistOk(r)) ||
-    results.find((r) => norm(r.trackName).includes(want) && artistOk(r));
+    results.find((r) => norm(r.trackName) === wantBase && artistOk(r)) ||
+    results.find((r) => norm(r.trackName).includes(wantBase) && artistOk(r));
   if (!hit) return { preview: null, art: null };
   return {
     preview: hit.previewUrl || null,
@@ -42,23 +49,32 @@ async function itunesMatch(artist, title) {
   };
 }
 
+// A Spotify track URL pasted into the wrong field still yields a track id.
+const trackUrlIn = (s) => {
+  const m = (s || '').match(/track\/([A-Za-z0-9]+)/);
+  return m ? `https://open.spotify.com/track/${m[1]}` : '';
+};
+
 export async function resolveTracks(items, limit = 12) {
   const out = [];
   for (const it of (items || []).slice(0, limit)) {
-    const url = canonical(it.spotifyUrl);
+    // Rescue common paste mistakes: URL (or embed code) in the Label field instead of
+    // the URL field. A label that is itself a URL is never used as display text.
+    const url = canonical(it.spotifyUrl) || trackUrlIn(it.label);
+    const label = /https?:\/\//i.test(it.label || '') ? '' : it.label;
     if (!url) continue;
     try {
       const meta = await spotifyMeta(url);
       const itunes = await itunesMatch(meta.artist, meta.title);
       out.push({
         spotifyUrl: url,
-        title: it.label || meta.title || 'Untitled',
+        title: label || meta.title || 'Untitled',
         artist: meta.artist || '',
         art: meta.art || itunes.art || null, // Spotify album art first (matches the exact track)
         preview: itunes.preview,             // 30-sec clip from iTunes
       });
     } catch (err) {
-      out.push({ spotifyUrl: url, title: it.label || 'Untitled', artist: '', art: null, preview: null, error: true });
+      out.push({ spotifyUrl: url, title: label || 'Untitled', artist: '', art: null, preview: null, error: true });
     }
   }
   return out;

@@ -174,8 +174,8 @@ export default config({
       schema: {
         tracks: fields.array(
           fields.object({
-            spotifyUrl: fields.url({ label: 'Spotify track URL' }),
-            label: fields.text({ label: 'Label (optional override)' }),
+            spotifyUrl: fields.url({ label: 'Spotify track URL', description: 'Paste the song link from Spotify → Share → Copy Song Link.' }),
+            label: fields.text({ label: 'Display name (optional)', description: 'Only to override the title shown on the site — not a link field.' }),
           }),
           { label: 'Tracks (drag to rank)', itemLabel: (p) => p.fields.label.value || p.fields.spotifyUrl.value || 'Track' }
         ),
