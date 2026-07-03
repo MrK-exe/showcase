@@ -9,12 +9,16 @@ const { num, id, title, meta, weight = 'compact' } = Astro.props;
 // Album art is a CSS background + JS-swapped data attribute, so it needs a URL string:
 // build-cached art goes through getImage() for an optimized asset; a remote-URL
 // fallback passes through unchanged.
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const tracks = await Promise.all(
   getMusic().map(async (t) => {
     const art = resolveArt(t.art);
     return {
       ...t,
       art: typeof art === 'object' ? (await getImage({ src: art, width: 320, format: 'webp' })).src : art ?? '',
+      // preview is either a stable remote URL (iTunes) or a self-hosted path under
+      // public/audio-cache (Deezer clips cached at pull time) that needs the site base
+      preview: t.preview ? (/^https?:/.test(t.preview) ? t.preview : base + t.preview) : null,
       spotifyUrl: isSafeHref(t.spotifyUrl) ? t.spotifyUrl : '',
     };
   })

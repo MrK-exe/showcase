@@ -5,6 +5,8 @@
 // preview URLs carry an expiry token, refreshed by the daily cron rebuild). The album art comes
 // from Spotify (accurate to the exact track); the audio comes from the matched catalog. No keys.
 
+import { cacheAudio } from './artcache.mjs';
+
 const canonical = (url) => {
   const m = (url || '').match(/track\/([A-Za-z0-9]+)/);
   return m ? `https://open.spotify.com/track/${m[1]}` : (url || '');
@@ -85,6 +87,7 @@ async function deezerMatch(artist, title) {
   const search = async (q) => {
     const data = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
     return (data.data || []).map((r) => ({
+      id: r.id,
       title: r.title,
       artist: r.artist?.name || '',
       preview: r.preview || null,
@@ -116,10 +119,14 @@ export async function resolveTracks(items, limit = 12) {
     try {
       const meta = await spotifyMeta(url);
       let match = await itunesMatch(meta.artist, meta.title);
-      // not in Apple's catalog → try Deezer before giving up (row then links to Spotify)
+      // not in Apple's catalog → try Deezer before giving up (row then links to Spotify).
+      // Deezer preview URLs expire ~20 min after issue, so the clip is downloaded into
+      // public/audio-cache at pull time and served from our own origin; the stable
+      // track id keys the cache. Download failed → no preview (never ship a dying URL).
       if (!match.preview) {
         const dz = await deezerMatch(meta.artist, meta.title);
-        if (dz.preview) match = dz;
+        const local = dz.preview ? await cacheAudio(dz.preview, `deezer-${dz.id}`) : null;
+        if (local) match = { ...dz, preview: local };
       }
       out.push({
         spotifyUrl: url,

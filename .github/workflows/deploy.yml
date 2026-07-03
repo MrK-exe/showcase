@@ -42,6 +42,7 @@ jobs:
           path: |
             src/generated/*.json
             src/generated/art
+            public/audio-cache
           key: fed-data-${{ github.run_id }}
           restore-keys: |
             fed-data-
