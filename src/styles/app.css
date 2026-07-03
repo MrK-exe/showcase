@@ -328,6 +328,8 @@ body.no-crt #sync { display: none; }
 /* record-player tracks are real anchors (INIT-04) — global :focus-visible ring applies */
 
 /* ---------- content detail pages: /work/[slug], /games/[slug] (INIT-01) ---------- */
+/* back-link bar for full-width listing pages (/work/) — section-width, not detail-width */
+.backbar { max-width: var(--maxw); margin: 0 auto; padding: var(--space-6) var(--space-4) 0; }
 .detail { max-width: 760px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
 .detail__back { display: inline-block; margin-bottom: var(--space-4); color: var(--ink); border-bottom: 1px solid var(--line); }
 .detail__back:hover, .detail__back:focus-visible { color: var(--acc-ink); border-color: var(--acc-ink); }

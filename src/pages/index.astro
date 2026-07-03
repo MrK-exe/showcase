@@ -7,14 +7,14 @@ import { sections, site, sources } from '../config/site.config';
 import { getCollection } from 'astro:content';
 import { getWriting, getFilms, getLastPlayed, getTopGames } from '../lib/data';
 import { resolveArt } from '../lib/art';
+import { byDateDesc, byOrderThenDate } from '../lib/sort';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
 const asset = (p?: string | null) => (!p ? undefined : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
 const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
 
 // ── authored / uploaded collections (CMS) ──
-const byDateDesc = (a: any, b: any) => +new Date(b.data.date ?? 0) - +new Date(a.data.date ?? 0);
-const workEntries = (await getCollection('work')).sort(byDateDesc);
+const workEntries = (await getCollection('work')).sort(byOrderThenDate);
 const photoEntries = (await getCollection('photos')).sort(byDateDesc);
 const reviewEntries = (await getCollection('gameReviews')).sort(byDateDesc);
 
@@ -109,6 +109,8 @@ function groupsFor(id: string): Group[] {
 }
 
 const viewAll: Record<string, { href: string; label: string }> = {
+  // the homepage row caps at 5 — link the full log once there's more than fits
+  ...(workEntries.length > 5 ? { work: { href: `${base}work/`, label: `all ${workEntries.length} entries` } } : {}),
   writing: { href: sources.substack, label: 'all on substack' },
   films: { href: `https://letterboxd.com/${sources.letterboxd}`, label: 'all on letterboxd' },
 };

@@ -69,6 +69,11 @@ export default config({
           label: 'Updated (optional)',
           description: 'Set when you meaningfully revise the entry — shown next to the publish date.',
         }),
+        order: fields.integer({
+          label: 'Order (optional)',
+          description:
+            'Pin this entry to a position: lower numbers come first (1 is the top). Entries without a number follow, newest first.',
+        }),
         status: fields.select({
           label: 'Status',
           options: [
