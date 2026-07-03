@@ -1,7 +1,9 @@
 // Music for the record player. Spotify deprecated preview_url for new apps, so: resolve the pasted
 // Spotify track link to title + artist (oEmbed for title/album-art; og:description for the artist),
-// then match it on Apple's free iTunes Search API for a real 30-sec preview + hi-res artwork. The
-// album art comes from Spotify (accurate to the exact track); the audio comes from iTunes. No keys.
+// then match it against keyless preview catalogs for a real 30-sec clip: Apple's iTunes Search API
+// first (stable, non-expiring files), Deezer as fallback (covers different catalog gaps; its
+// preview URLs carry an expiry token, refreshed by the daily cron rebuild). The album art comes
+// from Spotify (accurate to the exact track); the audio comes from the matched catalog. No keys.
 
 const canonical = (url) => {
   const m = (url || '').match(/track\/([A-Za-z0-9]+)/);
@@ -30,44 +32,71 @@ async function spotifyMeta(url) {
   return { title: oembed.title || '', artist, art: oembed.thumbnail_url || null };
 }
 
-async function itunesMatch(artist, title) {
-  // Spotify suffixes version info after ' - ' ("Hotel California - 2013 Remaster");
-  // iTunes writes it differently ("Hotel California (Remastered)"), so matching on the
-  // full title misses. Search with the base title; match base-first, full-title when it
-  // happens to agree.
-  const baseTitle = title.split(' - ')[0].trim() || title;
-  // Spotify lists collaborators as "A, B"; iTunes search chokes on the comma list, so
-  // query with the primary artist and verify against ANY listed artist.
-  const artists = (artist || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const search = async (term) => {
-    const data = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
-    return data.results || [];
-  };
+// Spotify suffixes version info after ' - ' ("Hotel California - 2013 Remaster");
+// catalogs write it differently ("Hotel California (Remastered)"), so matching on the
+// full title misses. Match base-first, full-title when it happens to agree.
+// Spotify lists collaborators as "A, B"; catalog search chokes on the comma list, so
+// query with the primary artist and verify candidates against ANY listed artist.
+// When the artist is known, the match MUST agree on one of them — a blind results[0]
+// can attach the wrong song's 30-sec preview to the track. No artist scraped →
+// title-only match, but never a fallback to an arbitrary first result.
+const splitArtists = (artist) => (artist || '').split(',').map((s) => s.trim()).filter(Boolean);
+const pickTrack = (candidates, artists, title, baseTitle) => {
   const want = norm(title);
   const wantBase = norm(baseTitle);
-  // when the artist is known, the match must agree on one of them — a blind results[0]
-  // can attach the wrong song's 30-sec preview to the track. No artist scraped →
-  // title-only match, but never a fallback to an arbitrary first result.
-  const artistOk = (r) =>
+  const artistOk = (c) =>
     !artists.length ||
     artists.some((a) => {
       const na = norm(a);
-      const rn = norm(r.artistName);
+      const rn = norm(c.artist);
       return na && (rn.includes(na) || na.includes(rn));
     });
-  const pick = (results) =>
-    results.find((r) => norm(r.trackName) === want && artistOk(r)) ||
-    results.find((r) => norm(r.trackName) === wantBase && artistOk(r)) ||
-    results.find((r) => norm(r.trackName).includes(wantBase) && artistOk(r));
-  let hit = pick(await search(`${artists[0] || ''} ${baseTitle}`.trim()));
+  return (
+    candidates.find((c) => norm(c.title) === want && artistOk(c)) ||
+    candidates.find((c) => norm(c.title) === wantBase && artistOk(c)) ||
+    candidates.find((c) => norm(c.title).includes(wantBase) && artistOk(c))
+  );
+};
+
+async function itunesMatch(artist, title) {
+  const baseTitle = title.split(' - ')[0].trim() || title;
+  const artists = splitArtists(artist);
+  const search = async (term) => {
+    const data = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
+    return (data.results || []).map((r) => ({
+      title: r.trackName,
+      artist: r.artistName,
+      preview: r.previewUrl || null,
+      art: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '600x600bb') : null,
+    }));
+  };
+  let hit = pickTrack(await search(`${artists[0] || ''} ${baseTitle}`.trim()), artists, title, baseTitle);
   // artist+title found nothing artist-approved → title-only search (odd artist strings,
   // features, stylized names); the artist check still gates every candidate.
-  if (!hit && artists.length) hit = pick(await search(baseTitle));
-  if (!hit) return { preview: null, art: null };
-  return {
-    preview: hit.previewUrl || null,
-    art: hit.artworkUrl100 ? hit.artworkUrl100.replace('100x100bb', '600x600bb') : null,
+  if (!hit && artists.length) hit = pickTrack(await search(baseTitle), artists, title, baseTitle);
+  return hit || { preview: null, art: null };
+}
+
+// Deezer fallback — the other keyless catalog with direct 30-sec MP3 previews; it carries
+// tracks (esp. independent releases) that Apple doesn't. Same verification gate.
+async function deezerMatch(artist, title) {
+  const baseTitle = title.split(' - ')[0].trim() || title;
+  const artists = splitArtists(artist);
+  const search = async (q) => {
+    const data = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
+    return (data.data || []).map((r) => ({
+      title: r.title,
+      artist: r.artist?.name || '',
+      preview: r.preview || null,
+      art: r.album?.cover_big || null,
+    }));
   };
+  let hit = pickTrack(
+    await search(artists[0] ? `artist:"${artists[0]}" track:"${baseTitle}"` : baseTitle),
+    artists, title, baseTitle
+  );
+  if (!hit && artists.length) hit = pickTrack(await search(`${artists[0]} ${baseTitle}`), artists, title, baseTitle);
+  return hit || { preview: null, art: null };
 }
 
 // A Spotify track URL pasted into the wrong field still yields a track id.
@@ -86,13 +115,18 @@ export async function resolveTracks(items, limit = 12) {
     if (!url) continue;
     try {
       const meta = await spotifyMeta(url);
-      const itunes = await itunesMatch(meta.artist, meta.title);
+      let match = await itunesMatch(meta.artist, meta.title);
+      // not in Apple's catalog → try Deezer before giving up (row then links to Spotify)
+      if (!match.preview) {
+        const dz = await deezerMatch(meta.artist, meta.title);
+        if (dz.preview) match = dz;
+      }
       out.push({
         spotifyUrl: url,
         title: label || meta.title || 'Untitled',
         artist: meta.artist || '',
-        art: meta.art || itunes.art || null, // Spotify album art first (matches the exact track)
-        preview: itunes.preview,             // 30-sec clip from iTunes
+        art: meta.art || match.art || null, // Spotify album art first (matches the exact track)
+        preview: match.preview,             // 30-sec clip from iTunes or Deezer
       });
     } catch (err) {
       out.push({ spotifyUrl: url, title: label || 'Untitled', artist: '', art: null, preview: null, error: true });
