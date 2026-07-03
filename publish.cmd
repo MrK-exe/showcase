@@ -1,7 +1,14 @@
 @echo off
 setlocal
-rem -- Publish: stage everything, commit, push. CI builds + deploys in ~5 min. --
+rem -- Publish: refresh feeds, stage everything, commit, push. CI builds + deploys in ~5 min. --
 cd /d "%~dp0"
+
+rem Substack blocks GitHub's build servers, so new posts can only be pulled from THIS
+rem machine — refresh the feed data here and publish it along with everything else.
+rem A failed refresh is fine: the publish continues with the last pulled data.
+echo Checking Substack / feeds for new posts...
+node scripts\pull.mjs
+echo.
 
 git add -A
 git diff --cached --quiet
