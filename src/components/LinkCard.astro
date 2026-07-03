@@ -1,0 +1,19 @@
+---
+// Rich link embed inside article prose ({% embed %} — authored via the admin's
+// "Link card" component). A bordered card in the site's hairline style; external
+// URLs open in a new tab like every other outbound link.
+import { externalAttrs, isSafeHref } from '../lib/safe';
+
+interface Props { url?: string; title?: string; description?: string }
+const { url, title, description } = Astro.props;
+const safe = isSafeHref(url) ? url : undefined;
+const host = safe && /^https?:/i.test(safe) ? new URL(safe).host.replace(/^www\./, '') : null;
+---
+{safe && (
+  <a class="linkcard" href={safe} {...externalAttrs(safe)}>
+    <span class="linkcard__kick lab">{host ?? 'link'} ↗</span>
+    <span class="linkcard__title">{title || safe}</span>
+    {description && <span class="linkcard__desc">{description}</span>}
+  </a>
+)}
+{/* styled in app.css (.prose a.linkcard …) — scoped styles lose to the global .prose a rules */}
