@@ -103,6 +103,12 @@ export const getMusic = () =>
   readJson('src/generated/music.json', z.object({ tracks: z.array(TrackSchema).catch([]) }), { tracks: [] }).tracks;
 export const getTopGames = () =>
   readJson('src/content/settings/top-games.json', z.object({ games: z.array(TopGameSchema).catch([]) }), { games: [] }).games;
+// Admin "Work — order" singleton: drag-ranked entry slugs. Missing file / empty list = no
+// pins (listings fall back to newest-first). Null items (never-filled rows) are dropped.
+export const getWorkOrder = () =>
+  readJson('src/content/settings/work-order.json', z.object({ entries: z.array(z.string().nullable()).catch([]) }), {
+    entries: [],
+  }).entries.filter((s): s is string => !!s);
 export const getConnectLinks = (fallback: ConnectLink[]) =>
   readJson('src/content/settings/connect.json', z.object({ links: z.array(ConnectLinkSchema) }), { links: fallback }).links;
 

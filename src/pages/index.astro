@@ -5,16 +5,16 @@ import type { Group } from '../components/Section.astro';
 import RecordPlayer from '../components/RecordPlayer.astro';
 import { sections, site, sources } from '../config/site.config';
 import { getCollection } from 'astro:content';
-import { getWriting, getFilms, getLastPlayed, getTopGames } from '../lib/data';
+import { getWriting, getFilms, getLastPlayed, getTopGames, getWorkOrder } from '../lib/data';
 import { resolveArt } from '../lib/art';
-import { byDateDesc, byOrderThenDate } from '../lib/sort';
+import { byDateDesc, byPinnedOrder } from '../lib/sort';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
 const asset = (p?: string | null) => (!p ? undefined : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
 const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
 
 // ── authored / uploaded collections (CMS) ──
-const workEntries = (await getCollection('work')).sort(byOrderThenDate);
+const workEntries = (await getCollection('work')).sort(byPinnedOrder(getWorkOrder()));
 const photoEntries = (await getCollection('photos')).sort(byDateDesc);
 const reviewEntries = (await getCollection('gameReviews')).sort(byDateDesc);
 

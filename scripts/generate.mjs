@@ -60,4 +60,24 @@ mkdirSync(PUB, { recursive: true });
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
   writeFileSync(resolve(PUB, 'og.png'), png);
   console.log('public/og.png written (' + png.length + ' bytes)');
+
+  /* ---- favicon: the wordmark's "AE." in the site palette. Satori renders glyphs as
+     SVG paths, so favicon.svg needs no font at display time; favicon.png is the
+     fallback for browsers without SVG-favicon support (Safari). ---- */
+  const icon = t(
+    { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: '#F4F2EC', fontFamily: 'Chakra Petch', fontSize: 42, fontWeight: 700 },
+    [
+      { type: 'span', props: { style: { color: '#141310' }, children: 'AE' } },
+      { type: 'span', props: { style: { color: '#E5341C' }, children: '.' } },
+    ]
+  );
+  const iconSvg = await satori(icon, {
+    width: 64, height: 64,
+    fonts: [{ name: 'Chakra Petch', data: bold, weight: 700, style: 'normal' }],
+  });
+  writeFileSync(resolve(PUB, 'favicon.svg'), iconSvg, 'utf8');
+  const iconPng = new Resvg(iconSvg, { fitTo: { mode: 'width', value: 128 } }).render().asPng();
+  writeFileSync(resolve(PUB, 'favicon.png'), iconPng);
+  console.log('public/favicon.svg + favicon.png written');
 }
