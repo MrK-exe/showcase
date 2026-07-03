@@ -1,4 +1,5 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
+import { block, inline } from '@keystatic/core/content-components';
 
 /* Admin schema. Three content TYPES:
    - Authored (Work dev-log, Game reviews): markdoc body whose headings drive an outline/TOC; dedicated pages.
@@ -9,6 +10,35 @@ import { config, fields, collection, singleton } from '@keystatic/core';
    server) → double-click publish.cmd to commit + push → CI deploys in ~5 min. */
 
 // Half-star ratings (Letterboxd-style). Stored as a string; parsed to a number when rendering.
+// Editor components for article bodies (Work + Game reviews). Serialized as markdoc
+// tags ({% fn %}, {% embed %}) and rendered by markdoc.config.mjs:
+// fn → auto-numbered superscript reference + appended references list with backlinks;
+// embed → bordered link-preview card.
+const articleComponents = {
+  fn: inline({
+    label: 'Footnote',
+    schema: {
+      note: fields.text({
+        label: 'Footnote text',
+        multiline: true,
+        description: 'Shown in the numbered references list at the end. URLs become links automatically.',
+      }),
+    },
+  }),
+  embed: block({
+    label: 'Link card',
+    schema: {
+      url: fields.url({ label: 'URL' }),
+      title: fields.text({ label: 'Title' }),
+      description: fields.text({ label: 'Description (optional)', multiline: true }),
+    },
+  }),
+};
+
+// Body images upload next to the entry files and are stored entry-relative, so
+// astro:assets optimizes them (WebP) exactly like a hand-placed relative image.
+const bodyImages = (directory: string) => ({ image: { directory, publicPath: './' } });
+
 const ratingField = fields.select({
   label: 'Rating',
   options: [
@@ -34,7 +64,11 @@ export default config({
       format: { contentField: 'body' },
       schema: {
         title: fields.slug({ name: { label: 'Title' } }),
-        date: fields.date({ label: 'Date', defaultValue: { kind: 'today' } }),
+        date: fields.date({ label: 'Published', defaultValue: { kind: 'today' } }),
+        updated: fields.date({
+          label: 'Updated (optional)',
+          description: 'Set when you meaningfully revise the entry — shown next to the publish date.',
+        }),
         status: fields.select({
           label: 'Status',
           options: [
@@ -44,9 +78,17 @@ export default config({
           ],
           defaultValue: 'wip',
         }),
-        summary: fields.text({ label: 'Summary', multiline: true }),
+        summary: fields.text({
+          label: 'Summary / TLDR',
+          multiline: true,
+          description: 'Shown under the title on the entry page (and as its description for search/sharing).',
+        }),
         tags: fields.array(fields.text({ label: 'Tag' }), { label: 'Tags', itemLabel: (p) => p.value }),
-        body: fields.markdoc({ label: 'Body' }),
+        body: fields.markdoc({
+          label: 'Body',
+          options: bodyImages('src/content/work'),
+          components: articleComponents,
+        }),
       },
     }),
 
@@ -68,7 +110,11 @@ export default config({
           publicPath: '../../assets/images/games/',
         }),
         excerpt: fields.text({ label: 'Excerpt', multiline: true }),
-        body: fields.markdoc({ label: 'Review' }),
+        body: fields.markdoc({
+          label: 'Review',
+          options: bodyImages('src/content/game-reviews'),
+          components: articleComponents,
+        }),
       },
     }),
 

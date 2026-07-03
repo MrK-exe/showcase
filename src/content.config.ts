@@ -11,6 +11,7 @@ const work = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.coerce.date().optional(),
+    updated: z.coerce.date().optional(),
     // mirrors the Keystatic select — a hand-edited file can't ship an unknown status
     status: z.enum(['shipped', 'wip', 'archived']).optional(),
     summary: z.string().optional(),
