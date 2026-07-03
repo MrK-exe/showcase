@@ -33,19 +33,25 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       # Restore the previous run's pulled JSON + downloaded artwork so scripts/pull.mjs
-      # "keep last good" has something to keep on a clean checkout (src/generated is
-      # gitignored). The unique key never hits, so restore-keys picks the most recent
-      # save and the post-job step saves this run's fresh data under the new key.
+      # "keep last good" has something to keep on a clean checkout. The unique key never
+      # hits, so restore-keys picks the most recent save and the post-job step saves this
+      # run's fresh data under the new key.
+      # writing.json is deliberately NOT here: Substack 403s GitHub's IPs, so that file is
+      # git-tracked and refreshed by publish.cmd on the owner's machine — a cache restore
+      # would clobber the committed copy with a stale one. (v2 key: pre-split tars contain
+      # writing.json and must never be restored.)
       - name: Restore last-good fed data
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            src/generated/*.json
+            src/generated/films.json
+            src/generated/lastplayed.json
+            src/generated/music.json
             src/generated/art
             public/audio-cache
-          key: fed-data-${{ github.run_id }}
+          key: fed-data-v2-${{ github.run_id }}
           restore-keys: |
-            fed-data-
+            fed-data-v2-
 
       - name: Type check
         run: npx astro check
