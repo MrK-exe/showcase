@@ -69,11 +69,6 @@ export default config({
           label: 'Updated (optional)',
           description: 'Set when you meaningfully revise the entry — shown next to the publish date.',
         }),
-        order: fields.integer({
-          label: 'Order (optional)',
-          description:
-            'Pin this entry to a position: lower numbers come first (1 is the top). Entries without a number follow, newest first.',
-        }),
         status: fields.select({
           label: 'Status',
           options: [
@@ -173,6 +168,27 @@ export default config({
           label: 'Availability',
           description: 'Short status line, e.g. “open to film + software work”. Empty = hidden.',
         }),
+      },
+    }),
+
+    // ── Curated: pinned ordering for the Work dev log (drag to rank, like the music playlist) ──
+    workOrder: singleton({
+      label: 'Work — order',
+      path: 'src/content/settings/work-order',
+      format: { data: 'json' },
+      schema: {
+        entries: fields.array(
+          fields.relationship({
+            label: 'Entry',
+            collection: 'work',
+            validation: { isRequired: true },
+          }),
+          {
+            label: 'Entries (drag to order)',
+            description: 'Top of this list = top of the Work section. Entries you leave out follow after, newest first.',
+            itemLabel: (p) => p.value || 'Entry',
+          }
+        ),
       },
     }),
 

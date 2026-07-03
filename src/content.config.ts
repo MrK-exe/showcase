@@ -12,8 +12,6 @@ const work = defineCollection({
     title: z.string(),
     date: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
-    // owner-pinned position (lower = earlier); entries without one sort by date
-    order: z.number().nullish(),
     // mirrors the Keystatic select — a hand-edited file can't ship an unknown status
     status: z.enum(['shipped', 'wip', 'archived']).optional(),
     summary: z.string().optional(),

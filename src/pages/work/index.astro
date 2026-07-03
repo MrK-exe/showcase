@@ -3,14 +3,15 @@ import { getCollection } from 'astro:content';
 import Experience from '../../layouts/Experience.astro';
 import Section from '../../components/Section.astro';
 import { site, sections } from '../../config/site.config';
-import { byOrderThenDate } from '../../lib/sort';
+import { getWorkOrder } from '../../lib/data';
+import { byPinnedOrder } from '../../lib/sort';
 
 // Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (same reasoning
 // as [...slug].astro, which would otherwise shadow this path in CMS mode).
 export const prerender = true;
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
-const entries = (await getCollection('work')).sort(byOrderThenDate);
+const entries = (await getCollection('work')).sort(byPinnedOrder(getWorkOrder()));
 // carry the same section number Work has on the homepage — this page reads as that
 // section expanded, not as a new section
 const num = String(sections.filter((s) => s.enabled).findIndex((s) => s.id === 'work') + 1).padStart(2, '0');
