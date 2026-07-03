@@ -293,7 +293,10 @@ body.no-crt #sync { display: none; }
 
 /* ---------- footer ---------- */
 .foot { max-width: var(--maxw); margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-6); font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; color: var(--mut); text-transform: uppercase; }
-.foot__sys { border: 1px solid var(--line); padding: 1px 6px; color: var(--ink); }
+/* permanently inline-block: the scramble lock flips scrambling elements to inline-block
+   for the animation's duration, and on an inline chip with padding+border that flip
+   changes the line height — the footer would jump at every scramble */
+.foot__sys { display: inline-block; border: 1px solid var(--line); padding: 1px 6px; color: var(--ink); }
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
