@@ -2,12 +2,15 @@
 // read lives on Substack. Built on rss-parser (no custom XML parsing).
 import Parser from 'rss-parser';
 
-// rss-parser's default User-Agent ("rss-parser") gets bot-filtered by CDN-fronted feeds
-// when the request comes from a datacenter IP (GitHub Actions) — send a descriptive UA,
-// same workaround fetchFilmPoster in letterboxd.mjs already uses.
+// Substack 403s bot-identifying User-Agents from datacenter IPs (GitHub Actions) —
+// "compatible; …" strings included. A full browser UA is what feed readers use to get
+// through; local pulls work with any UA.
 const parser = new Parser({
   timeout: 15000,
-  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; showcase-build; +https://mrk-exe.github.io/showcase/)' },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+    Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+  },
 });
 
 // One retry on a flaky/blocked first attempt — a failed pull in CI blanks the section
