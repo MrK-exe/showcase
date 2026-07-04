@@ -65,8 +65,10 @@ html.lenis, html.lenis body { height: auto; }
 .hero__links a .hl-num { font-size: 9px; font-weight: 700; color: var(--acc-ink); letter-spacing: 0; }
 .hero__links a:hover, .hero__links a:focus-visible { color: var(--acc-ink); border-bottom-color: var(--acc-ink); }
 
-/* ambient radar in the hero — a real frame-performance sweep, no label or fake count */
-.hero__radar { display: inline-flex; align-self: flex-start; margin: 26px 0 0; }
+/* ambient radar in the hero — a real frame-performance sweep. The optional label is an
+   HONEST count (build-time Umami snapshot), never a fake or "live" readout. */
+.hero__radar { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; margin: 26px 0 0; }
+.radar__label { color: var(--mut); }
 /* radar = mount for vendored mobz/lag-radar (ISC); palette forced to mono ink + one vermilion sweep */
 .radar { position: relative; width: 36px; height: 36px; flex: none; display: grid; place-items: center; }
 .radar .lagRadar { display: block; }

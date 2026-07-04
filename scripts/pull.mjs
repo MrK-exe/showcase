@@ -11,6 +11,7 @@ import { pullLetterboxd, fetchFilmPoster } from './lib/letterboxd.mjs';
 import { pullSteam } from './lib/steam.mjs';
 import { pullPsn } from './lib/psn.mjs';
 import { resolveTracks } from './lib/music.mjs';
+import { pullSignals } from './lib/umami.mjs';
 import { readSingleton } from './lib/singleton.mjs';
 import { withCachedArt } from './lib/artcache.mjs';
 
@@ -117,6 +118,19 @@ await task(
   'music.json',
   async () => ({ tracks: await withCachedArt(await resolveTracks(readSingleton('music')?.tracks, 12), 'art') }),
   { tracks: [] }
+);
+
+// Signals — Umami Cloud snapshot (unique visitors + countries, last 7 days) feeding the
+// hero radar's honest label. Needs the website id (sources.mjs) AND the read key (CI
+// secret); without either it throws into task()'s keep-last-good path, so a keyless
+// local pull never blanks CI's data.
+await task(
+  'signals.json',
+  async () => {
+    if (!sources.umami || !process.env.UMAMI_API_KEY) throw new Error('no umami id/key (skipped)');
+    return pullSignals(sources.umami, process.env.UMAMI_API_KEY, 7);
+  },
+  { days: 7, visitors: null, pageviews: null, countries: [] }
 );
 
 console.log('pull: done');

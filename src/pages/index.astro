@@ -5,7 +5,7 @@ import type { Group } from '../components/Section.astro';
 import RecordPlayer from '../components/RecordPlayer.astro';
 import { sections, site, sources } from '../config/site.config';
 import { getCollection } from 'astro:content';
-import { getWriting, getFilms, getLastPlayed, getTopGames, getWorkOrder } from '../lib/data';
+import { getWriting, getFilms, getLastPlayed, getTopGames, getWorkOrder, getSignals } from '../lib/data';
 import { resolveArt } from '../lib/art';
 import { byDateDesc, byPinnedOrder } from '../lib/sort';
 
@@ -23,6 +23,7 @@ const writing = getWriting();
 const films = getFilms();
 const lastPlayed = getLastPlayed();
 const topGames = getTopGames();
+const signals = getSignals(); // Umami snapshot — radar label renders only when data exists
 
 // Build the card groups for each section id. Every section uses the one Card primitive.
 // Typed end-to-end: each card literal is checked against Card's Props (no `any` seam).
@@ -148,8 +149,13 @@ const enabled = sections.filter((s) => s.enabled);
       ))}
     </nav>
 
-    <span class="hero__radar" id="hero-signal" aria-hidden="true">
-      <span class="radar" id="hero-radar"></span>
+    <span class="hero__radar" id="hero-signal">
+      <span class="radar" id="hero-radar" aria-hidden="true"></span>
+      {signals.visitors != null && (
+        <span class="radar__label lab" title={`unique visitors — last ${signals.days} days`}>
+          {signals.visitors} signal{signals.visitors === 1 ? '' : 's'} · {signals.days}d
+        </span>
+      )}
     </span>
 
     <p class="hero__hint lab">↓ scroll</p>

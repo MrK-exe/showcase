@@ -8,6 +8,7 @@ dist/
 src/generated/films.json
 src/generated/lastplayed.json
 src/generated/music.json
+src/generated/signals.json
 public/audio-cache/
 # deps
 node_modules/
