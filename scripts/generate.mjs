@@ -61,12 +61,14 @@ mkdirSync(PUB, { recursive: true });
   writeFileSync(resolve(PUB, 'og.png'), png);
   console.log('public/og.png written (' + png.length + ' bytes)');
 
-  /* ---- favicon: the wordmark's "AE." in the site palette. Satori renders glyphs as
-     SVG paths, so favicon.svg needs no font at display time; favicon.png is the
-     fallback for browsers without SVG-favicon support (Safari). ---- */
+  /* ---- favicon: the wordmark's "AE." — bare lettering, no background. Satori renders
+     glyphs as SVG paths, so favicon.svg needs no font at display time. The letters flip
+     ink→white with the browser's dark UI via a prefers-color-scheme style injected into
+     the SVG; the vermilion period never changes. favicon.png (transparent, ink letters)
+     is the fallback for browsers without SVG-favicon support (Safari). ---- */
   const icon = t(
     { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: '#F4F2EC', fontFamily: 'Chakra Petch', fontSize: 42, fontWeight: 700 },
+      fontFamily: 'Chakra Petch', fontSize: 46, fontWeight: 700 },
     [
       { type: 'span', props: { style: { color: '#141310' }, children: 'AE' } },
       { type: 'span', props: { style: { color: '#E5341C' }, children: '.' } },
@@ -76,8 +78,13 @@ mkdirSync(PUB, { recursive: true });
     width: 64, height: 64,
     fonts: [{ name: 'Chakra Petch', data: bold, weight: 700, style: 'normal' }],
   });
-  writeFileSync(resolve(PUB, 'favicon.svg'), iconSvg, 'utf8');
+  // PNG first, from the plain SVG (resvg has no media-query support)
   const iconPng = new Resvg(iconSvg, { fitTo: { mode: 'width', value: 128 } }).render().asPng();
   writeFileSync(resolve(PUB, 'favicon.png'), iconPng);
+  // then the theme-adaptive SVG: swap the ink fill for a class the media query drives
+  const adaptive = iconSvg
+    .replace(/fill="#141310"/g, 'class="ink"')
+    .replace(/>/, '><style>.ink{fill:#141310}@media(prefers-color-scheme:dark){.ink{fill:#fff}}</style>');
+  writeFileSync(resolve(PUB, 'favicon.svg'), adaptive, 'utf8');
   console.log('public/favicon.svg + favicon.png written');
 }

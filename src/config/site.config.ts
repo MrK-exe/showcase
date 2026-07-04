@@ -40,7 +40,7 @@ const editable = getSiteSettings({
 
 export const site = {
   name: 'Abdullah Aletai',          // display identity — title, hero, SEO
-  codename: 'psychic-carnival',     // system/console motif — boot log, footer SYS tag
+  codename: 'mrk.exe',              // system/console motif — boot log, footer SYS tag (the MrK-exe handle)
   author: 'Abdullah Aletai',
   handle: 'MrK-exe',
   url: 'https://mrk-exe.github.io',

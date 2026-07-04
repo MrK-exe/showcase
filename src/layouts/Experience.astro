@@ -230,7 +230,7 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
         };
         const ok = '<span class="ok">ok</span>';
         const slow = [
-          '<span class="dim">$</span> boot psychic-carnival <span class="dim">— rev.01</span>',
+          '<span class="dim">$</span> boot mrk.exe <span class="dim">— rev.01</span>',
           '<span class="dim">▶</span> mounting modules ......... ' + ok,
         ];
         const burst = [
@@ -790,6 +790,14 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
           if (openEl && d.spotify) openEl.href = d.spotify;
           if (now) now.textContent = `track ${String(idx + 1).padStart(2, '0')} / ${items.length}`;
           if (audio) { audio.src = d.preview || ''; if (autoplay && d.preview) audio.play().catch(() => {}); }
+          // media-session card (iOS lock screen / control center): show the owner's chosen
+          // name instead of the page title, with the current track's art.
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: 'aletai.dev',
+              artwork: d.art ? [{ src: d.art }] : [],
+            });
+          }
         };
         const setPlaying = (on: boolean) => {
           if (playBtn) playBtn.textContent = on ? 'pause' : 'play';
@@ -803,6 +811,13 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
           audio.addEventListener('play', () => setPlaying(true));
           audio.addEventListener('pause', () => setPlaying(false));
           audio.addEventListener('ended', () => load(idx + 1, true)); // roll through the playlist
+          // let the OS media buttons (lock screen, earbuds) walk the playlist too
+          if ('mediaSession' in navigator) {
+            try {
+              navigator.mediaSession.setActionHandler('nexttrack', () => load(idx + 1, true));
+              navigator.mediaSession.setActionHandler('previoustrack', () => load(idx - 1, true));
+            } catch {}
+          }
         }
         // each track row is a real <a href={spotify}> (works without JS); with JS alive the
         // click is upgraded into loading the 30-sec preview in-page. Native anchor = native
