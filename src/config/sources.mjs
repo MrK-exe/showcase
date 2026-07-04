@@ -13,5 +13,5 @@ export const sources = {
   // Public share URL of the same website (dashboard → website settings → enable Share URL).
   // This is how the build READS the stats back — API keys are paid-only on the free tier,
   // but the share endpoints are public by design. Empty = no signals label.
-  umamiShare: '',
+  umamiShare: 'https://cloud.umami.is/share/vleGy1DQ8brwtKML',
 };
