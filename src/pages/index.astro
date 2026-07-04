@@ -151,7 +151,7 @@ const enabled = sections.filter((s) => s.enabled);
 
     <span class="hero__radar" id="hero-signal">
       <span class="radar" id="hero-radar" aria-hidden="true"></span>
-      {signals.visitors != null && (
+      {!!signals.visitors && (
         <span class="radar__label lab" title={`unique visitors — last ${signals.days} days`}>
           {signals.visitors} signal{signals.visitors === 1 ? '' : 's'} · {signals.days}d
         </span>
