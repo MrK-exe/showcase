@@ -121,14 +121,13 @@ await task(
 );
 
 // Signals — Umami Cloud snapshot (unique visitors + countries, last 7 days) feeding the
-// hero radar's honest label. Needs the website id (sources.mjs) AND the read key (CI
-// secret); without either it throws into task()'s keep-last-good path, so a keyless
-// local pull never blanks CI's data.
+// hero radar's honest label. Reads via the PUBLIC share URL (no key, works anywhere);
+// unset/failed → task()'s keep-last-good path, so the label never regresses to fake data.
 await task(
   'signals.json',
   async () => {
-    if (!sources.umami || !process.env.UMAMI_API_KEY) throw new Error('no umami id/key (skipped)');
-    return pullSignals(sources.umami, process.env.UMAMI_API_KEY, 7);
+    if (!sources.umamiShare) throw new Error('no umami share url (skipped)');
+    return pullSignals(sources.umamiShare, 7);
   },
   { days: 7, visitors: null, pageviews: null, countries: [] }
 );
