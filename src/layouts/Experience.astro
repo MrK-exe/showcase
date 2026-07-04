@@ -11,7 +11,7 @@ import '@fontsource/space-mono/latin-700.css';
 import chakra700Url from '@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff2?url';
 import 'locomotive-scroll/dist/locomotive-scroll.css';
 import '../styles/app.css';
-import { site, links as defaultLinks } from '../config/site.config';
+import { site, links as defaultLinks, sources } from '../config/site.config';
 import Nav from '../components/Nav.astro';
 import banner from '../generated/banner.txt?raw';
 import { getConnectLinks } from '../lib/data';
@@ -57,6 +57,10 @@ const ld = {
 };
 // escape `<` so no link/label value can ever break out of the <script> data block
 const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
+// Umami analytics (cookieless, no personal data) is the ONLY third-party runtime origin,
+// and only when a website id is configured — otherwise the CSP stays pure 'self'.
+const umamiOrigin = sources.umami ? ' https://cloud.umami.is' : '';
+const csp = `default-src 'self'; script-src 'self'${umamiOrigin}; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src https:; font-src 'self'; connect-src 'self'${umamiOrigin}; object-src 'none'; base-uri 'self'; form-action 'self'`;
 ---
 <!doctype html>
 <html lang="en">
@@ -67,10 +71,7 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
          script-src 'self' works because ALL scripts are same-origin files (boot.js below +
          Astro's bundled module); style 'unsafe-inline' covers Astro's scoped <style> and the
          style attributes the motion code writes. JSON-LD data blocks are exempt from CSP. -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src https:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
-    />
+    <meta http-equiv="Content-Security-Policy" content={csp} />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <!-- Progressive enhancement: mark JS active before paint, and guarantee the boot overlay,
          opacity:0 reveals, and hidden cursor can never leave a permanent black screen if the
@@ -84,6 +85,12 @@ const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
         body, body * { cursor: auto !important; }
       </style>
     </noscript>
+    {/* privacy-friendly analytics (cookieless, honors Do Not Track) — only with an id set.
+        set:html because the astro-check JSX parser rejects <script> inside an expression;
+        the id is a build-time config constant, not user input. */}
+    <Fragment set:html={sources.umami
+      ? `<script defer src="https://cloud.umami.is/script.js" data-website-id="${sources.umami}" data-do-not-track="true"></script>`
+      : ''} />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}

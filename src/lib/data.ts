@@ -99,6 +99,17 @@ export const getLastPlayed = () =>
     z.object({ steam: z.array(PlayedGameSchema).catch([]), psn: z.array(PlayedGameSchema).catch([]) }),
     { steam: [], psn: [] }
   );
+// Umami snapshot for the hero radar's signals label. visitors null (no analytics
+// configured / no data yet) = the label simply doesn't render.
+const SignalsSchema = z.object({
+  days: z.number().catch(7),
+  visitors: z.number().nullable().catch(null),
+  countries: z.array(z.object({ code: str, visitors: z.number().catch(0) })).catch([]),
+});
+export type Signals = z.infer<typeof SignalsSchema>;
+export const getSignals = (): Signals =>
+  readJson('src/generated/signals.json', SignalsSchema, { days: 7, visitors: null, countries: [] });
+
 export const getMusic = () =>
   readJson('src/generated/music.json', z.object({ tracks: z.array(TrackSchema).catch([]) }), { tracks: [] }).tracks;
 export const getTopGames = () =>
