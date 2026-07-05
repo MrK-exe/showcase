@@ -16,6 +16,7 @@ export interface SectionDef {
   collection?: CollectionKey;
   component?: string;
   meta?: string;
+  metaHref?: string;   // makes the meta label a link (e.g. the @handle → the account)
   enabled: boolean;
   // visual primacy: production sections lead, consumption sections compact
   weight?: SectionWeight;
@@ -68,7 +69,7 @@ export const links = [
 export const sections: SectionDef[] = [
   { id: 'work', title: 'Work', kind: 'authored', collection: 'work', meta: 'dev log', enabled: true, weight: 'lead' },
   { id: 'writing', title: 'Writing', kind: 'fed', meta: 'substack', enabled: true, weight: 'standard' },
-  { id: 'photography', title: 'Photography', kind: 'uploaded', collection: 'photos', meta: '@AbdullahsArchive', enabled: true, weight: 'standard' },
+  { id: 'photography', title: 'Photography', kind: 'uploaded', collection: 'photos', meta: '@AbdullahsArchive', metaHref: 'https://instagram.com/AbdullahsArchive', enabled: true, weight: 'standard' },
   { id: 'films', title: 'Films', kind: 'fed', enabled: true, weight: 'compact' },
   { id: 'games', title: 'Games', kind: 'authored', collection: 'gameReviews', meta: 'reviews · steam + playstation', enabled: true, weight: 'compact' },
   { id: 'music', title: 'Music', kind: 'component', component: 'RecordPlayer', meta: 'record player', enabled: true, weight: 'compact' },
