@@ -5,14 +5,14 @@ import { externalAttrs } from '../lib/safe';
 
 export interface Group { label?: string; variant?: string; cards: CardProps[] }
 interface Props {
-  num: string; id: string; title: string; meta?: string;
+  num: string; id: string; title: string; meta?: string; metaHref?: string;
   weight?: string; reveal?: string;
   groups?: Group[];
   viewAllHref?: string; viewAllLabel?: string;
   empty?: string;
 }
 const {
-  num, id, title, meta, weight = 'standard', reveal = 'rise',
+  num, id, title, meta, metaHref, weight = 'standard', reveal = 'rise',
   groups = [], viewAllHref, viewAllLabel = 'view all', empty = 'Nothing here yet.',
 } = Astro.props;
 
@@ -22,7 +22,10 @@ const hasItems = groups.some((g) => g.cards.length > 0);
   <header class="section__head reveal" data-reveal={reveal}>
     <span class="section__num" data-scramble="reveal" data-scramble-chars="0-9">{num}</span>
     <h2 class="section__title" data-scramble="reveal">{title}</h2>
-    {meta && <span class="section__meta" data-scramble="reveal">{meta}</span>}
+    {meta && (metaHref
+      ? <a class="section__meta" href={metaHref} {...externalAttrs(metaHref)} data-scramble="reveal" data-mag>{meta}</a>
+      : <span class="section__meta" data-scramble="reveal">{meta}</span>
+    )}
     {viewAllHref && hasItems && (
       <a class="section__all" href={viewAllHref} {...externalAttrs(viewAllHref)} data-mag>{viewAllLabel} <span class="acc">↗</span></a>
     )}

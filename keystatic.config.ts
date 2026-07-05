@@ -156,9 +156,9 @@ export default config({
           description: 'One line that leads with what you MAKE, e.g. “I direct films, build software, and write.” Empty = hidden.',
         }),
         bio: fields.text({
-          label: 'Bio',
+          label: 'Bio / about me',
           multiline: true,
-          description: '2–3 lines in your voice: who you are and what to hire you for. Empty = hidden.',
+          description: 'About me — shown under the section links, above the radar. Line breaks are kept. Empty = hidden.',
         }),
         cvUrl: fields.text({
           label: 'CV file name',

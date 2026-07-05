@@ -112,8 +112,8 @@ function groupsFor(id: string): Group[] {
 const viewAll: Record<string, { href: string; label: string }> = {
   // the homepage row caps at 5 — link the full log once there's more than fits
   ...(workEntries.length > 5 ? { work: { href: `${base}work/`, label: `all ${workEntries.length} entries` } } : {}),
-  writing: { href: sources.substack, label: 'all on substack' },
-  films: { href: `https://letterboxd.com/${sources.letterboxd}`, label: 'all on letterboxd' },
+  writing: { href: sources.substack, label: 'More on Substack' },
+  films: { href: `https://letterboxd.com/${sources.letterboxd}`, label: 'More on Letterboxd' },
 };
 const emptyText: Record<string, string> = {
   work: 'No entries yet.',
@@ -131,7 +131,6 @@ const enabled = sections.filter((s) => s.enabled);
     <h1 class="hero__word" id="word" aria-label="Abdullah Aletai"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
 
     {site.positioning && <p class="hero__positioning">{site.positioning}</p>}
-    {site.bio && <p class="hero__bio">{site.bio}</p>}
 
     <div class="hero__cta">
       {/* real mailto link so contact works with JS off/failed; JS upgrades it to the connect modal */}
@@ -148,6 +147,9 @@ const enabled = sections.filter((s) => s.enabled);
         </a>
       ))}
     </nav>
+
+    {/* about me — owner copy (Site settings → Bio in the admin); hidden while empty */}
+    {site.bio && <p class="hero__bio">{site.bio}</p>}
 
     <span class="hero__radar" id="hero-signal">
       <span class="radar" id="hero-radar" aria-hidden="true"></span>
@@ -169,7 +171,7 @@ const enabled = sections.filter((s) => s.enabled);
     const va = viewAll[s.id];
     return (
       <Section
-        num={num} id={s.id} title={s.title} meta={s.meta} weight={s.weight}
+        num={num} id={s.id} title={s.title} meta={s.meta} metaHref={s.metaHref} weight={s.weight}
         reveal={reveals[i % reveals.length]}
         groups={groupsFor(s.id)}
         viewAllHref={va?.href} viewAllLabel={va?.label}
