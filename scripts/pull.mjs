@@ -7,7 +7,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sources } from '../src/config/sources.mjs';
 import { pullSubstack } from './lib/substack.mjs';
-import { pullLetterboxd, fetchFilmPoster } from './lib/letterboxd.mjs';
+import { pullLetterboxd, fetchFavorites, fetchFilmPoster } from './lib/letterboxd.mjs';
 import { pullSteam } from './lib/steam.mjs';
 import { pullPsn } from './lib/psn.mjs';
 import { resolveTracks } from './lib/music.mjs';
@@ -53,17 +53,29 @@ async function task(name, fn, fallback) {
   }
 }
 
-// Hand-curated favorite films (CMS) enriched with posters scraped from each Letterboxd film page.
+// Favorite films — the Letterboxd profile's own Favorites wall, scraped at pull time.
+// The CMS singleton is a manual OVERRIDE: any films listed there win (custom order/ratings/
+// posters); empty singleton = live profile favorites. A failed profile scrape keeps the
+// previously pulled list (same per-source isolation as Steam/PSN below), so a Letterboxd
+// hiccup can never blank favorites while fresh reviews still land.
 async function filmFavorites() {
-  const fav = readSingleton('film-favorites');
-  const films = fav?.films || [];
+  const curated = (readSingleton('film-favorites')?.films || []).map((f) => ({
+    title: f.title || '',
+    rating: f.rating != null && f.rating !== '' ? Number(f.rating) : null,
+    link: f.letterboxdUrl || '',
+    poster: f.poster || '',
+  }));
+  let films = curated;
+  if (!films.length) {
+    try {
+      films = await fetchFavorites(sources.letterboxd);
+    } catch (e) {
+      console.warn(`  letterboxd favorites failed: ${e?.message || e} (kept last good)`);
+      return readGen('films.json', { favorites: [] }).favorites || [];
+    }
+  }
   return Promise.all(
-    films.map(async (f) => ({
-      title: f.title || '',
-      rating: f.rating != null && f.rating !== '' ? Number(f.rating) : null,
-      link: f.letterboxdUrl || '',
-      poster: f.poster || (await fetchFilmPoster(f.letterboxdUrl)),
-    }))
+    films.map(async (f) => ({ ...f, poster: f.poster || (await fetchFilmPoster(f.link)) }))
   );
 }
 

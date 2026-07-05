@@ -192,7 +192,7 @@ export default config({
       },
     }),
 
-    // ── Curated: hand-picked top-4 favorite films (posters auto-fetched from the Letterboxd link at build) ──
+    // ── Curated OVERRIDE: favorites auto-pull from the Letterboxd profile when this is empty ──
     filmFavorites: singleton({
       label: 'Films — favorites',
       path: 'src/content/settings/film-favorites',
@@ -205,7 +205,11 @@ export default config({
             rating: ratingField,
             poster: fields.text({ label: 'Poster URL (optional — auto-fetched if blank)' }),
           }),
-          { label: 'Favorite films', itemLabel: (p) => p.fields.title.value || 'Film' }
+          {
+            label: 'Favorite films',
+            description: 'Optional override — leave EMPTY to auto-pull the favorites wall from your Letterboxd profile. Add films here only to customize the order, ratings, or posters.',
+            itemLabel: (p) => p.fields.title.value || 'Film',
+          }
         ),
       },
     }),
