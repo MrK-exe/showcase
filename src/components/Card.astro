@@ -44,11 +44,11 @@ const widthsFor: Record<string, number[]> = {
   wide: [340, 520, 720, 1000],
   row: [],
 };
-// half-star aware: 2.5 → ★★½☆☆ (never rounds up)
+// half-star aware, Letterboxd style: 2.5 → ★★½ (no hollow padding; never rounds up)
 const rated = rating != null && rating > 0;
 const full = rated ? Math.floor(rating) : 0;
 const half = rated && rating - full >= 0.5 ? 1 : 0;
-const stars = rated ? '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - half)) : null;
+const stars = rated ? '★'.repeat(full) + (half ? '½' : '') : null;
 const dateStr = date
   ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short' }).format(date)
   : null;
