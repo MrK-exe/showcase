@@ -57,10 +57,13 @@ const ld = {
 };
 // escape `<` so no link/label value can ever break out of the <script> data block
 const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
-// Umami analytics (cookieless, no personal data) is the ONLY third-party runtime origin,
-// and only when a website id is configured — otherwise the CSP stays pure 'self'.
-const umamiOrigin = sources.umami ? ' https://cloud.umami.is' : '';
-const csp = `default-src 'self'; script-src 'self'${umamiOrigin}; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src https:; font-src 'self'; connect-src 'self'${umamiOrigin}; object-src 'none'; base-uri 'self'; form-action 'self'`;
+// Umami analytics (cookieless, no personal data) is the ONLY third-party runtime, and only
+// when a website id is configured — otherwise the CSP stays pure 'self'. The script loads
+// from cloud.umami.is but SENDS pageviews to gateway.umami.is (its baked-in ingest host) —
+// connect-src must allow the gateway or every visitor's browser silently drops the send.
+const umamiScript = sources.umami ? ' https://cloud.umami.is' : '';
+const umamiConnect = sources.umami ? ' https://cloud.umami.is https://gateway.umami.is' : '';
+const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src https:; font-src 'self'; connect-src 'self'${umamiConnect}; object-src 'none'; base-uri 'self'; form-action 'self'`;
 ---
 <!doctype html>
 <html lang="en">
