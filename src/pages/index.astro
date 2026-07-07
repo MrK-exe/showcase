@@ -130,7 +130,7 @@ const enabled = sections.filter((s) => s.enabled);
     <p class="hero__kicker" data-scramble="periodic">{site.tagline}</p>
     <h1 class="hero__word" id="word" aria-label="Abdullah Aletai"><span id="word-t">ABDULLAH ALETAI</span><span class="hl">.</span></h1>
 
-    {site.positioning && <p class="hero__positioning">{site.positioning}</p>}
+    {site.positioning && <p class="hero__positioning" id="hero-positioning">{site.positioning}</p>}
 
     <div class="hero__cta">
       {/* real mailto link so contact works with JS off/failed; JS upgrades it to the connect modal */}
@@ -149,7 +149,7 @@ const enabled = sections.filter((s) => s.enabled);
     </nav>
 
     {/* about me — owner copy (Site settings → Bio in the admin); hidden while empty */}
-    {site.bio && <p class="hero__bio">{site.bio}</p>}
+    {site.bio && <p class="hero__bio" id="hero-bio">{site.bio}</p>}
 
     <span class="hero__radar" id="hero-signal">
       <span class="radar" id="hero-radar" aria-hidden="true"></span>
