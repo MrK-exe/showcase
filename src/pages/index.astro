@@ -148,8 +148,9 @@ const enabled = sections.filter((s) => s.enabled);
       ))}
     </nav>
 
-    {/* about me — owner copy (Site settings → Bio in the admin); hidden while empty */}
-    {site.bio && <p class="hero__bio" id="hero-bio">{site.bio}</p>}
+    {/* about me — owner copy (Site settings → Bio in the admin); hidden while empty.
+        Split on newlines into per-line blocks so the char-decode never scrambles a hard break. */}
+    {site.bio && <p class="hero__bio" id="hero-bio">{site.bio.split('\n').map((line) => <span class="hero__bio-line">{line}</span>)}</p>}
 
     <span class="hero__radar" id="hero-signal">
       <span class="radar" id="hero-radar" aria-hidden="true"></span>
