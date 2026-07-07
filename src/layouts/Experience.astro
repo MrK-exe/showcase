@@ -505,7 +505,7 @@ const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'sel
          hover   = re-scramble on pointerenter of the nearest interactive host.
          Reduced-motion shows resolved text and skips all of it. */
       const scramble = (function () {
-        if (reduce || !A.animate || !A.scrambleText) return { hero() {} };
+        if (reduce || !A.animate || !A.scrambleText) return { hero() {}, bio() {} };
         const busy = new WeakSet<Element>();
         const run = (el: HTMLElement, from: any = 'left') => {
           if (busy.has(el)) return;
@@ -568,6 +568,31 @@ const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'sel
             const els = Array.from(document.querySelectorAll('.hero__kicker[data-scramble], .navlink__t')) as HTMLElement[];
             els.forEach((el, i) => setTimeout(() => run(el, 'random'), 120 + i * 70));
           },
+          // about-me decode — same footprint-freeze idea as run() but for a WRAPPING paragraph:
+          // scrambleText keeps spaces in place (source: animejs scramble.js), so words stay words and only
+          // the '_' cursor sweeps the reveal left→right. The one non-space glyph is the pre-line break,
+          // which scrambles for a beat — so we hard-lock the box (height + width) and clip any transient
+          // spill: the paragraph decodes in place and NOTHING on the page shifts a pixel.
+          bio() {
+            const el = document.getElementById('hero-bio') as HTMLElement | null;
+            if (!el || busy.has(el)) return;
+            busy.add(el);
+            const len = (el.textContent || '').length || 6;
+            const r = el.getBoundingClientRect();
+            const prevStyle = el.getAttribute('style');
+            el.style.height = `${r.height}px`;
+            el.style.width = `${r.width}px`;
+            el.style.overflow = 'hidden';
+            const unlock = () => { if (prevStyle === null) el.removeAttribute('style'); else el.setAttribute('style', prevStyle); };
+            A.animate(el, {
+              textContent: A.scrambleText({
+                chars: el.dataset.scrambleChars || 'A-Z0-9!%#',
+                from: 'left', ease: 'inOutQuad', revealRate: 42, cursor: '_', settleDuration: 460,
+                duration: Math.min(1800, 500 + len * 26),
+              }),
+              onComplete: () => { unlock(); busy.delete(el); },
+            });
+          },
         };
       })();
 
@@ -611,10 +636,12 @@ const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'sel
       /* ---------------- hero entrance on intro end (wordmark decodes; kicker/nav/count decode) ---------------- */
       document.addEventListener('intro:done', () => {
         if (reduce || !A.animate) return;
-        A.animate('#hero-positioning, #hero-links, #hero-bio, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
+        // bio is NOT in this fade group — it decodes (scramble + '_' cursor) as its own entrance below
+        A.animate('#hero-positioning, #hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
         // the decode effects width-lock their glyphs — measure only with the real (self-hosted,
         // preloaded) fonts, never the fallback's metrics. Resolves near-instantly in practice.
         document.fonts.ready.then(() => {
+          scramble.bio(); // first, with no delay — starts as noise so the final text never flashes
           wordmark.play();
           setTimeout(() => scramble.hero(), 320);
         });
