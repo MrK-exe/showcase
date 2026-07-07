@@ -160,9 +160,11 @@ export default config({
           multiline: true,
           description: 'About me — shown under the section links, above the radar. Line breaks are kept. Empty = hidden.',
         }),
-        cvUrl: fields.text({
-          label: 'CV file name',
-          description: 'File name of a CV/résumé PDF placed in the /public folder, e.g. “abdullah-aletai-cv.pdf”. The CV button appears when set.',
+        cvUrl: fields.file({
+          label: 'CV / résumé (PDF)',
+          description: 'Upload a CV/résumé PDF here — the site’s “cv ↓” button links to it. Remove the file to hide the button. (Don’t paste a path from your computer; use the upload control.)',
+          directory: 'public/cv',
+          publicPath: '/cv/',
         }),
         availability: fields.text({
           label: 'Availability',

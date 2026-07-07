@@ -611,7 +611,7 @@ const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'sel
       /* ---------------- hero entrance on intro end (wordmark decodes; kicker/nav/count decode) ---------------- */
       document.addEventListener('intro:done', () => {
         if (reduce || !A.animate) return;
-        A.animate('#hero-links, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
+        A.animate('#hero-positioning, #hero-links, #hero-bio, #hero-signal', { opacity: [0, 1], y: [12, 0], duration: 640, delay: 260, ease: 'outQuad' });
         // the decode effects width-lock their glyphs — measure only with the real (self-hosted,
         // preloaded) fonts, never the fallback's metrics. Resolves near-instantly in practice.
         document.fonts.ready.then(() => {
