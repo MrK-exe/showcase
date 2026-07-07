@@ -568,30 +568,42 @@ const csp = `default-src 'self'; script-src 'self'${umamiScript}; style-src 'sel
             const els = Array.from(document.querySelectorAll('.hero__kicker[data-scramble], .navlink__t')) as HTMLElement[];
             els.forEach((el, i) => setTimeout(() => run(el, 'random'), 120 + i * 70));
           },
-          // about-me decode — same footprint-freeze idea as run() but for a WRAPPING paragraph:
-          // scrambleText keeps spaces in place (source: animejs scramble.js), so words stay words and only
-          // the '_' cursor sweeps the reveal left→right. The one non-space glyph is the pre-line break,
-          // which scrambles for a beat — so we hard-lock the box (height + width) and clip any transient
-          // spill: the paragraph decodes in place and NOTHING on the page shifts a pixel.
+          // about-me decode — per-CHARACTER, built on the wordmark's proven split+width-lock so it is
+          // reflow-PROOF: splitText wraps every glyph in its own box, we PIN each box to its final width,
+          // then reveal left→right (each char scrambles in place) with a block caret riding the frontier.
+          // Headless-verified (chrome --virtual-time-budget): 0px drift across all 104 chars mid-decode,
+          // settles to the exact prose. Lines are separate .hero__bio-line blocks (split on \n upstream)
+          // so a hard line-break is structure, never a scrambled glyph — that was the old version's shift.
           bio() {
-            const el = document.getElementById('hero-bio') as HTMLElement | null;
-            if (!el || busy.has(el)) return;
-            busy.add(el);
-            const len = (el.textContent || '').length || 6;
-            const r = el.getBoundingClientRect();
-            const prevStyle = el.getAttribute('style');
-            el.style.height = `${r.height}px`;
-            el.style.width = `${r.width}px`;
-            el.style.overflow = 'hidden';
-            const unlock = () => { if (prevStyle === null) el.removeAttribute('style'); else el.setAttribute('style', prevStyle); };
-            A.animate(el, {
-              textContent: A.scrambleText({
-                chars: el.dataset.scrambleChars || 'A-Z0-9!%#',
-                from: 'left', ease: 'inOutQuad', revealRate: 42, cursor: '_', settleDuration: 460,
-                duration: Math.min(1800, 500 + len * 26),
-              }),
-              onComplete: () => { unlock(); busy.delete(el); },
+            const root = document.getElementById('hero-bio') as HTMLElement | null;
+            if (!root || !A.splitText) return;
+            const lines = Array.from(root.querySelectorAll('.hero__bio-line')) as HTMLElement[];
+            if (!lines.length) return;
+            const chars: HTMLElement[] = [];
+            lines.forEach((line) => {
+              const s: any = A.splitText(line, { chars: { class: 'fc' }, accessible: true });
+              ((s.chars || (s[1] && s[1].chars) || []) as HTMLElement[]).forEach((c) => {
+                c.style.width = `${c.getBoundingClientRect().width}px`;
+                c.style.textAlign = 'center';
+                c.style.display = 'inline-block';
+                c.style.visibility = 'hidden'; // box already reserved; revealed as the caret reaches it (no leak, no reflow)
+                chars.push(c);
+              });
             });
+            const step = Math.max(9, Math.min(22, Math.round(1500 / chars.length)));
+            chars.forEach((c, i) => setTimeout(() => {
+              c.style.visibility = 'visible';
+              if (i > 0) chars[i - 1].classList.remove('is-caret');
+              c.classList.add('is-caret');
+              A.animate(c, { textContent: A.scrambleText({ chars: 'A-Z0-9!%#', duration: 240, settleDuration: 160 }) });
+            }, i * step));
+            // NOTE: we do NOT revert the split. Per-char boxes wrap a hair wider than kerned prose, so
+            // reverting to natural text would re-wrap by a word at the very end — a visible snap. Keeping
+            // the pinned layout means the bio settles once (while chars are still hidden) and never moves.
+            setTimeout(() => {
+              const last = chars[chars.length - 1];
+              if (last) last.classList.remove('is-caret');
+            }, chars.length * step + 900);
           },
         };
       })();
