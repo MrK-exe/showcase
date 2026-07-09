@@ -1,6 +1,6 @@
 # Abdullah Aletai — personal site
 
-`psychic-carnival` — an index of work, writing, photography, films, games, and music.
+An index of work, writing, photography, films, games, and music.
 Astro 7 static site → GitHub Pages at **https://mrk-exe.github.io/showcase/**.
 
 ## Run modes

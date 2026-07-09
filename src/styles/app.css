@@ -1,4 +1,4 @@
-/* psychic-carnival — full experience styles. Layout + chrome. Card visuals live in Card.astro.
+/* showcase — full experience styles. Layout + chrome. Card visuals live in Card.astro.
    Motion policy: NO CSS @keyframes — every animation runs through anime.js.
    Only short hover/state transitions remain in CSS (micro-interactions, not animations). */
 
