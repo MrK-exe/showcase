@@ -78,6 +78,27 @@ html.lenis, html.lenis body { height: auto; }
 /* reduced-motion: no sweep — a static HUD ring + a single fixed blip */
 .radar--static { border: var(--hair) solid var(--ink); border-radius: 50%; }
 .radar--static::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--acc); transform: translate(2px, -50%); }
+
+/* clickable signals disclosure — summary is the label; the panel is an absolute overlay so
+   opening it NEVER reflows the hero. Works with JS off (native <details>). */
+.signal { position: relative; }
+.signal > summary.radar__label { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; transition: color var(--dur-fast) var(--ease-out); }
+.signal > summary::-webkit-details-marker { display: none; }
+/* a small +/× affordance so the count reads as interactive */
+.signal > summary::after { content: '+'; font-size: 12px; line-height: 1; color: var(--line-2); transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.signal[open] > summary::after { transform: rotate(45deg); color: var(--acc-ink); }
+.signal > summary:hover, .signal[open] > summary { color: var(--ink); }
+.signal > summary:focus-visible { outline: var(--hair) solid var(--acc); outline-offset: 3px; }
+.signal__panel { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; min-width: 190px; max-width: min(280px, 80vw); padding: 12px 14px; background: var(--bone); border: var(--hair) solid var(--ink); box-shadow: 4px 4px 0 var(--line); }
+.signal__head { color: var(--ink); margin: 0 0 8px; }
+.signal__cities { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.signal__cities li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--mut); }
+.signal__city { color: var(--ink); letter-spacing: 0.5px; }
+.signal__cc { color: var(--mut); font-size: 9px; letter-spacing: 1px; margin-left: 6px; }
+.signal__n { color: var(--acc-ink); flex: none; }
+.signal__foot { margin: 9px 0 0; padding-top: 8px; border-top: var(--hair) solid var(--line); font-size: 9px; }
+@media (prefers-reduced-motion: reduce) { .signal > summary::after { transition: none; } }
+
 .hero__hint { margin-top: 44px; }
 
 /* ---------- sections ---------- */
