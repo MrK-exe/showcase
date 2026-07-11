@@ -89,12 +89,16 @@ export async function fetchFavorites(user) {
   return films.slice(0, 4);
 }
 
-// A favorite film's poster isn't in the RSS feed, so grab it from the film page's og:image.
+// A favorite film's poster isn't in the RSS feed, so grab it from the film page. Use the
+// JSON-LD "image" field — that's the 2:3 POSTER (matches what the review cards show). The
+// page's og:image is a 16:9 backdrop crop, NOT the poster, so it's only a last-ditch fallback.
 export async function fetchFilmPoster(filmUrl) {
   if (!filmUrl) return null;
   try {
     const html = await fetch(filmUrl, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
-    return (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1] || null;
+    const poster = (html.match(/"image":"([^"]+)"/) || [])[1];
+    const ogImage = (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1];
+    return (poster || ogImage || null)?.replace(/&amp;/g, '&') || null;
   } catch {
     return null;
   }

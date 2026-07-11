@@ -8,5 +8,15 @@ tags:
 ---
 # What caused me to look into this...
 
-wasn't being a seasoned dev myself, but seeing all the wonderful studios I love, making a game I just can't run or run poorly. It started with Overwatch 2's and Marvel Rivals' launches; both saw either a hit in performance on a capable 3050 laptop or non-competitive frame rates. Marvel Rivals was especially egregious given their forced UE5 TAA antialiasing solution that looked like my screen was evenly spread with a coat of Vaseline  (which, upon forcing off in the engine.ini, made the game look another flavor of terrible with the dithering)\
+wasn't being a seasoned developer myself, but seeing all the wonderful studios I love, making games I just can't run or run poorly. It started with Overwatch 2's and Marvel Rivals' launches; both saw either a hit in performance on a capable 3050 laptop or non-competitive frame rates. Marvel Rivals was especially egregious given their forced UE5 TAA temporal anti-aliasing, being a rendering technique that smooths jagged edges and reduces shimmering by blending the current frame with data from previous frames. The anti-aliasing solution that looked like my screen was evenly spread with a coat of Vaseline, since TAA basically upscales based on the last rendered frame, y'know before anything moved, then blurs to make up the difference. Even forcing off in the engine.ini made the game look another flavor of terrible with the dithering)\
 ![red dead redemption blurry. TAA on vs off](./render-pipeline-optimization/i2p41flb8q8c1.png)
+
+---
+
+# Games look bad, so what can I do?
+
+I'm not a graphics developer, but given I study CS, I can surely look into this. After all, I would like to make a game in the near future. So, after months of research, primarily from UE forums and YouTube videos like those from Threat Interactive, I've concluded that the problem isn't that games are taxing; it's that the crutches given by UE and GPU manufacturers are so easy and simple to use, that developers got complacent, and rightfully so. Just like how we use the gym to train muscles and writing the brain, we find that there's a new type of atrophy we must train against: critical and innovative solutions as opposed to vibe coding or relying on built-in machine fixes. \
+\
+Again, I'm not trying to undermine developers here, just pointing out a trap all of us have fallen into: relying on something external *too* much. In my opinion, I think the best way to tackle this is to provide hard evidence that a specific rendering method is optimized or unoptimized for this particular game + scene + target hardware. But we all know if it is or isn't unoptimized. The question then becomes what and why this is unoptimized, and what the fix for it is.\
+\
+LLMs are too unpredictable (and we're all tired of GPT wrappers), and current frame analysis tools need experts to weigh in, so what we can do is have an algorithm that, with enough data, can determine what's rendered properly per pass, and what's not.

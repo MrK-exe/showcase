@@ -141,7 +141,7 @@ await task(
     if (!sources.umamiShare) throw new Error('no umami share url (skipped)');
     return pullSignals(sources.umamiShare, 7);
   },
-  { days: 7, visitors: null, pageviews: null, countries: [] }
+  { days: 7, visitors: null, pageviews: null, countries: [], cities: [] }
 );
 
 console.log('pull: done');

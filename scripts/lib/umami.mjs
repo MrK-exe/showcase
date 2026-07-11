@@ -35,9 +35,11 @@ export async function pullSignals(shareUrl, days = 7) {
   const auth = { 'x-umami-share-token': share.token, 'x-umami-share-context': shareId };
   const endAt = Date.now();
   const range = `startAt=${endAt - days * 86400000}&endAt=${endAt}`;
-  const [stats, countries] = await Promise.all([
+  const [stats, countries, cities] = await Promise.all([
     get(`websites/${share.websiteId}/stats?${range}`, auth),
     get(`websites/${share.websiteId}/metrics?${range}&type=country`, auth),
+    // approximate city, IP-geolocated by Umami. Rows are {x: 'Riyadh', y: count, country: 'SA'}
+    get(`websites/${share.websiteId}/metrics?${range}&type=city`, auth),
   ]);
   return {
     days,
@@ -46,5 +48,11 @@ export async function pullSignals(shareUrl, days = 7) {
     pageviews: typeof stats?.pageviews === 'number' ? stats.pageviews : (stats?.pageviews?.value ?? null),
     // /metrics rows are {x: 'US', y: count}
     countries: (Array.isArray(countries) ? countries : []).map((c) => ({ code: c.x || '', visitors: c.y ?? 0 })),
+    // top cities only — the panel stays compact, and a long tail of one-offs isn't worth showing
+    cities: (Array.isArray(cities) ? cities : [])
+      .filter((c) => c.x)
+      .sort((a, b) => (b.y ?? 0) - (a.y ?? 0))
+      .slice(0, 8)
+      .map((c) => ({ city: c.x, country: c.country || '', visitors: c.y ?? 0 })),
   };
 }

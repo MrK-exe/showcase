@@ -104,11 +104,13 @@ export const getLastPlayed = () =>
 const SignalsSchema = z.object({
   days: z.number().catch(7),
   visitors: z.number().nullable().catch(null),
+  pageviews: z.number().nullable().catch(null),
   countries: z.array(z.object({ code: str, visitors: z.number().catch(0) })).catch([]),
+  cities: z.array(z.object({ city: str, country: str.catch(''), visitors: z.number().catch(0) })).catch([]),
 });
 export type Signals = z.infer<typeof SignalsSchema>;
 export const getSignals = (): Signals =>
-  readJson('src/generated/signals.json', SignalsSchema, { days: 7, visitors: null, countries: [] });
+  readJson('src/generated/signals.json', SignalsSchema, { days: 7, visitors: null, pageviews: null, countries: [], cities: [] });
 
 export const getMusic = () =>
   readJson('src/generated/music.json', z.object({ tracks: z.array(TrackSchema).catch([]) }), { tracks: [] }).tracks;
