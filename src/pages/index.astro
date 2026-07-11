@@ -157,7 +157,7 @@ const enabled = sections.filter((s) => s.enabled);
       {!!signals.visitors && (
         signals.cities.length ? (
           <details class="signal">
-            <summary class="radar__label lab" title={`unique visitors — last ${signals.days} days`}>
+            <summary class="radar__label lab" data-mag title={`unique visitors — last ${signals.days} days`}>
               {signals.visitors} signal{signals.visitors === 1 ? '' : 's'} · {signals.days}d
             </summary>
             {/* absolutely-positioned overlay — opening it never reflows the hero */}
