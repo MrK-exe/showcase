@@ -82,7 +82,9 @@ html.lenis, html.lenis body { height: auto; }
 /* clickable signals disclosure — summary is the label; the panel is an absolute overlay so
    opening it NEVER reflows the hero. Works with JS off (native <details>). */
 .signal { position: relative; }
-.signal > summary.radar__label { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; transition: color var(--dur-fast) var(--ease-out); }
+/* no cursor override here on purpose: the summary inherits the global `cursor: none`
+   (app.css:12) exactly like every other interactive element, so only the reticle shows. */
+.signal > summary.radar__label { list-style: none; display: inline-flex; align-items: center; gap: 6px; transition: color var(--dur-fast) var(--ease-out); }
 .signal > summary::-webkit-details-marker { display: none; }
 /* a small +/× affordance so the count reads as interactive */
 .signal > summary::after { content: '+'; font-size: 12px; line-height: 1; color: var(--line-2); transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
@@ -96,7 +98,6 @@ html.lenis, html.lenis body { height: auto; }
 .signal__city { color: var(--ink); letter-spacing: 0.5px; }
 .signal__cc { color: var(--mut); font-size: 9px; letter-spacing: 1px; margin-left: 6px; }
 .signal__n { color: var(--acc-ink); flex: none; }
-.signal__foot { margin: 9px 0 0; padding-top: 8px; border-top: var(--hair) solid var(--line); font-size: 9px; }
 @media (prefers-reduced-motion: reduce) { .signal > summary::after { transition: none; } }
 
 .hero__hint { margin-top: 44px; }
