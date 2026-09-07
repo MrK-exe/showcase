@@ -11,6 +11,7 @@ import { byPinnedOrder } from '../../lib/sort';
 export const prerender = true;
 
 import { base } from '../../lib/base'; // '/showcase/' — guaranteed trailing slash
+import { statusLabel } from '../../lib/work';
 const entries = (await getCollection('work')).sort(byPinnedOrder(getWorkOrder()));
 // carry the same section number Work has on the homepage — this page reads as that
 // section expanded, not as a new section
@@ -29,7 +30,7 @@ const num = String(sections.filter((s) => s.enabled).findIndex((s) => s.id === '
     groups={[{
       variant: 'row',
       cards: entries.map((e) => ({
-        variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: e.data.status,
+        variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: statusLabel(e.data.status),
         date: e.data.date, links: [{ label: 'Open', href: `${base}work/${e.id}` }],
       })),
     }]}

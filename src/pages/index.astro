@@ -10,6 +10,7 @@ import { resolveArt } from '../lib/art';
 import { byDateDesc, byPinnedOrder } from '../lib/sort';
 
 import { base } from '../lib/base'; // '/showcase/' — guaranteed trailing slash
+import { statusLabel } from '../lib/work';
 const asset = (p?: string | null) => (!p ? undefined : /^https?:\/\//.test(p) ? p : base + p.replace(/^\//, ''));
 const reveals = ['rise', 'flick', 'slide', 'glitch', 'rise', 'flick'];
 
@@ -33,7 +34,7 @@ function groupsFor(id: string): Group[] {
       return [{
         variant: 'row',
         cards: workEntries.slice(0, 5).map((e) => ({
-          variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: e.data.status,
+          variant: 'row' as const, title: e.data.title, subtitle: e.data.summary, status: statusLabel(e.data.status),
           date: e.data.date, links: [{ label: 'Open', href: `${base}work/${e.id}` }],
         })),
       }];
