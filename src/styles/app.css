@@ -32,7 +32,7 @@ html.lenis, html.lenis body { height: auto; }
 /* ---------- buttons (fixed box — never reflow on press) ---------- */
 .btn {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-  border: var(--hair) solid var(--ink); background: transparent; color: var(--ink);
+  border: var(--hair) solid var(--ink); background: var(--btn-bg, transparent); color: var(--ink);
   height: 30px; min-width: 76px; padding: 0 12px;
   display: inline-flex; align-items: center; justify-content: center;
   user-select: none; transition: background var(--dur-fast), color var(--dur-fast);
@@ -209,7 +209,8 @@ html:not(.js) #connect-btn, html.fallback #connect-btn { display: none; }
 }
 
 /* ---------- top-right controls ---------- */
-#controls { position: fixed; top: 14px; right: 16px; z-index: var(--z-nav); display: flex; gap: 8px; align-items: flex-start; }
+/* fixed chrome over scrolling prose — the buttons must be opaque or text shows through them */
+#controls { position: fixed; top: 14px; right: 16px; z-index: var(--z-nav); display: flex; gap: 8px; align-items: flex-start; --btn-bg: var(--bone); }
 #controls .menu { position: relative; }
 #dev-panel { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bone); border: var(--hair) solid var(--ink); padding: 6px 10px; display: none; min-width: 164px; }
 #dev-panel.open { display: block; }

@@ -18,6 +18,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
 import { base } from '../../lib/base'; // '/showcase/' — guaranteed trailing slash
+import { workKind, statusLabel } from '../../lib/work';
 const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 const fmt = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' });
 const dateStr = entry.data.date ? fmt.format(entry.data.date) : null;
@@ -27,7 +28,7 @@ const updatedStr = entry.data.updated ? fmt.format(entry.data.updated) : null;
   <article class="detail">
     <a class="detail__back lab" href={`${base}#work`} data-mag>← index</a>
     <header class="detail__head">
-      <p class="detail__kick lab">Work · dev log{entry.data.status ? ` · ${entry.data.status}` : ''}</p>
+      <p class="detail__kick lab">{workKind(entry.data.tags)}{entry.data.status && entry.data.status !== 'shipped' ? ` · ${statusLabel(entry.data.status)}` : ''}</p>
       <h1 class="detail__title">{entry.data.title}</h1>
       {dateStr && <p class="detail__meta lab">{dateStr}{updatedStr && ` · updated ${updatedStr}`}</p>}
       {entry.data.summary && <p class="detail__summary">{entry.data.summary}</p>}
