@@ -123,9 +123,21 @@ export function createWordmark() {
   const original = wordT.textContent || '';
   let splitter: any = null;
   let running: any[] = [];
+  let chars: HTMLElement[] = [];
+  let live = 0; // glyphs still scrambling
+  let dirty = false; // a resize landed mid-decode — re-pin once the last glyph settles
+  // pin every glyph box to its own advance width. Clear first, then measure, so a stale pin
+  // can never be what gets measured.
+  const pin = () => {
+    chars.forEach((c) => { c.style.width = ''; });
+    chars.forEach((c) => { c.style.width = c.getBoundingClientRect().width + 'px'; c.style.textAlign = 'center'; });
+  };
   const reset = () => {
     running.forEach((a) => { try { a.pause(); } catch (_) {} });
     running = [];
+    chars = [];
+    live = 0;
+    dirty = false;
     try { splitter && splitter.revert && splitter.revert(); } catch (_) {}
     splitter = null;
     wordT.removeAttribute('style');
@@ -136,15 +148,28 @@ export function createWordmark() {
     if (reduce) return;
     requestAnimationFrame(() => {
       splitter = A.splitText(wordT, { chars: { class: 'fc' }, accessible: true });
-      const chars = (splitter.chars || (splitter[1] && splitter[1].chars) || []) as HTMLElement[];
-      chars.forEach((c) => { c.style.width = c.getBoundingClientRect().width + 'px'; c.style.textAlign = 'center'; });
+      chars = (splitter.chars || (splitter[1] && splitter[1].chars) || []) as HTMLElement[];
+      pin();
+      live = chars.length;
       chars.forEach((c, i) => {
         const dur = 300 + i * 50;
         running.push(A.animate(c, {
           textContent: A.scrambleText({ chars: 'A-Z0-9', duration: dur, settleDuration: Math.round(dur * 0.82), settleRate: 26 }),
+          onComplete: () => { if (--live === 0 && dirty) { dirty = false; pin(); } },
         }));
       });
     });
   };
+  // the split is never reverted (reverting re-kerns = a visible snap), so the px pins outlive the
+  // decode. The font-size is vw-based: a phone rotate / window resize rescales the glyphs but
+  // not their boxes → letters drift in stale widths. Re-pin on resize, but never mid-decode
+  // (that would pin a random scramble glyph's width).
+  let raf = 0;
+  window.addEventListener('resize', () => {
+    if (!chars.length) return;
+    if (live) { dirty = true; return; }
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(pin);
+  });
   return { play };
 }
