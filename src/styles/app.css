@@ -174,9 +174,15 @@ html:not(.js) #connect-btn, html.fallback #connect-btn { display: none; }
 #rail:hover .rail__label, #rail:focus-within .rail__label { max-width: 140px; opacity: 1; }
 .rail__item.on .rail__dot { background: var(--acc); border-color: var(--acc); }
 .rail__item.on .rail__label { color: var(--acc-ink); }
-@media (max-width: 760px) { #rail { display: none; } }
+/* the rail sits in the left 52px; on a flush-left column (<~1140px the auto margins run out) the
+   content's 24px gutter would run under it — widen the gutter while the rail is visible */
+@media (min-width: 761px) and (max-width: 1140px) and (min-height: 501px) {
+  .hero, .section, .foot, .backbar { padding-left: 64px; }
+}
 
-/* ---------- mobile section bar + back-to-top (<760px — the rail's replacement) ---------- */
+/* ---------- compact layout: phones (<760px) AND landscape phones (short viewport) ----------
+   the rail's replacement is the bottom section bar. A landscape phone is ≥760px wide but ≤500px
+   tall — treating it as desktop put the rail over the bio and the wordmark under the controls. */
 #mnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); display: none; background: var(--bone); border-top: var(--hair) solid var(--ink); }
 #mnav ul { list-style: none; margin: 0; padding: 0 var(--space-2); display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 #mnav ul::-webkit-scrollbar { display: none; }
@@ -185,11 +191,21 @@ html:not(.js) #connect-btn, html.fallback #connect-btn { display: none; }
 #mnav a .mnav__num { font-size: 10px; font-weight: 700; color: var(--acc-ink); }
 #mnav a.on { color: var(--acc-ink); }
 #totop { display: none; position: fixed; right: 12px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-nav); width: 44px; height: 44px; border: var(--hair) solid var(--ink); background: var(--bone); color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
-@media (max-width: 760px) {
+@media (max-width: 760px), (orientation: landscape) and (max-height: 500px) {
+  #rail { display: none; }
   #mnav { display: block; }
   #totop.show { display: grid; place-items: center; }
   /* keep the fixed bottom bar from covering the footer's last line */
   .foot { padding-bottom: calc(var(--space-6) + 48px); }
+  /* section header: let meta + view-all drop to a second row instead of breaking mid-link ("↗" alone on a line) */
+  .section__head { flex-wrap: wrap; }
+  .section__meta, .section__all { white-space: nowrap; }
+}
+/* short landscape: hero content is taller than the viewport, so it flows from the top — start it
+   below the fixed top-right controls, and scale the wordmark to the height rather than 9vw */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero { padding-top: 64px; justify-content: flex-start; }
+  .hero__word { font-size: clamp(36px, 6.5vw, 64px); }
 }
 
 /* ---------- top-right controls ---------- */
