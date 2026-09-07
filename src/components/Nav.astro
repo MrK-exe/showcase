@@ -4,7 +4,7 @@ const enabled = sections.filter((s) => s.enabled);
 // Base-absolute hrefs (`/showcase/#work`) so the nav also works FROM detail/404 pages —
 // the click handler in Experience only hijacks into smooth-scroll when the section
 // exists on the current page.
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+import { base } from '../lib/base';
 ---
 <nav id="rail" aria-label="Sections">
   <ul class="rail__list">

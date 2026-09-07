@@ -1,0 +1,25 @@
+# Continuous checks — runs on every push / pull request and shows a ✓ or ✗ next to the
+# commit in the repo's "Actions" tab (and a red X on any commit that breaks). Deliberately
+# fast + deterministic: type-check + unit tests only, NO network `pull` step, so it never
+# flakes on Letterboxd/Spotify being slow. The Pages deploy stays a separate concern.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type + template check
+        run: npm run check
+      - name: Unit tests
+        run: npm test

@@ -9,7 +9,7 @@ const { num, id, title, meta, weight = 'compact' } = Astro.props;
 // Album art is a CSS background + JS-swapped data attribute, so it needs a URL string:
 // build-cached art goes through getImage() for an optimized asset; a remote-URL
 // fallback passes through unchanged.
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+import { base } from '../lib/base';
 const tracks = await Promise.all(
   getMusic().map(async (t) => {
     const art = resolveArt(t.art);
