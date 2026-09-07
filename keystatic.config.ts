@@ -264,7 +264,7 @@ export default config({
         links: fields.array(
           fields.object({
             label: fields.text({ label: 'Label' }),
-            href: fields.text({ label: 'URL or mailto:' }),
+            href: fields.text({ label: 'URL, mailto: or tel:' }),
           }),
           { label: 'Links (drag to order)', itemLabel: (p) => p.fields.label.value || 'Link' }
         ),

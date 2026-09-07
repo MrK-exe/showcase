@@ -180,15 +180,16 @@ html:not(.js) #connect-btn, html.fallback #connect-btn { display: none; }
 #mnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); display: none; background: var(--bone); border-top: var(--hair) solid var(--ink); }
 #mnav ul { list-style: none; margin: 0; padding: 0 var(--space-2); display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 #mnav ul::-webkit-scrollbar { display: none; }
-#mnav a { display: inline-flex; align-items: baseline; gap: 6px; padding: 11px 10px calc(11px + env(safe-area-inset-bottom, 0px)); font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
-#mnav a .mnav__num { font-size: 9px; font-weight: 700; color: var(--acc-ink); }
+/* 44px tap targets (Apple HIG minimum) — the bar is the only nav on phones */
+#mnav a { display: inline-flex; align-items: baseline; gap: 6px; padding: 15px 14px calc(15px + env(safe-area-inset-bottom, 0px)); font-family: var(--font-mono); font-size: 12px; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
+#mnav a .mnav__num { font-size: 10px; font-weight: 700; color: var(--acc-ink); }
 #mnav a.on { color: var(--acc-ink); }
-#totop { display: none; position: fixed; right: 12px; bottom: calc(54px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-nav); width: 38px; height: 38px; border: var(--hair) solid var(--ink); background: var(--bone); color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
+#totop { display: none; position: fixed; right: 12px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-nav); width: 44px; height: 44px; border: var(--hair) solid var(--ink); background: var(--bone); color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
 @media (max-width: 760px) {
   #mnav { display: block; }
   #totop.show { display: grid; place-items: center; }
   /* keep the fixed bottom bar from covering the footer's last line */
-  .foot { padding-bottom: calc(var(--space-6) + 44px); }
+  .foot { padding-bottom: calc(var(--space-6) + 48px); }
 }
 
 /* ---------- top-right controls ---------- */

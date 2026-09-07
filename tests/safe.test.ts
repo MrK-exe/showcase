@@ -5,10 +5,11 @@ import { isSafeHref, externalAttrs } from '../src/lib/safe';
 // value (javascript:, data:, …) must never render as a clickable sink. These tests pin the
 // allowlist so a well-meaning refactor can't quietly widen it.
 describe('isSafeHref', () => {
-  it('allows http(s) and mailto', () => {
+  it('allows http(s), mailto and tel', () => {
     expect(isSafeHref('https://example.com')).toBe(true);
     expect(isSafeHref('http://example.com')).toBe(true);
     expect(isSafeHref('mailto:a@b.com')).toBe(true);
+    expect(isSafeHref('tel:+966534596417')).toBe(true);
   });
 
   it('allows our own relative / anchor URLs (no scheme)', () => {
@@ -46,5 +47,6 @@ describe('externalAttrs', () => {
     expect(externalAttrs('#work')).toEqual({});
     expect(externalAttrs('/showcase/')).toEqual({});
     expect(externalAttrs('mailto:a@b.com')).toEqual({});
+    expect(externalAttrs('tel:+966534596417')).toEqual({});
   });
 });

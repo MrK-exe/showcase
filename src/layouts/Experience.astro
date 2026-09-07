@@ -43,7 +43,9 @@ const ld = {
       image: ogImage,
       jobTitle: site.tagline,
       description: site.description,
-      sameAs: links.filter((l) => /^https?:/.test(l.href)).map((l) => l.href),
+      // profile pages only — a wa.me chat link is a contact method, not an identity reference
+      sameAs: links.filter((l) => /^https?:/.test(l.href) && !/^https?:\/\/wa\.me\//i.test(l.href)).map((l) => l.href),
+      telephone: links.find((l) => /^tel:/i.test(l.href))?.href.replace(/^tel:/i, ''),
     },
     {
       '@type': 'WebSite',
