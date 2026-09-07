@@ -10,7 +10,7 @@ import { byPinnedOrder } from '../../lib/sort';
 // as [...slug].astro, which would otherwise shadow this path in CMS mode).
 export const prerender = true;
 
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // guarantee trailing slash
+import { base } from '../../lib/base'; // '/showcase/' — guaranteed trailing slash
 const entries = (await getCollection('work')).sort(byPinnedOrder(getWorkOrder()));
 // carry the same section number Work has on the homepage — this page reads as that
 // section expanded, not as a new section

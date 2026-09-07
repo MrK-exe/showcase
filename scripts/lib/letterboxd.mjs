@@ -18,7 +18,7 @@ const parser = new Parser({
   },
 });
 
-const parseEntry = (it) => {
+export const parseEntry = (it) => {
   const html = it.content || it['content:encoded'] || it.description || '';
   const poster = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || null;
   // strip the poster image + tags → plain review text; drop Letterboxd's platform

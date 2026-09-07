@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import { Image } from 'astro:assets';
 import Experience from '../../layouts/Experience.astro';
 import { site } from '../../config/site.config';
+import { formatStars } from '../../lib/rating';
 
 // Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (where getStaticPaths
 // would otherwise be ignored and an on-demand render would crash on undefined props).
@@ -17,17 +18,14 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+import { base } from '../../lib/base';
 const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 const dateStr = entry.data.date
   ? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'long', day: 'numeric' }).format(entry.data.date)
   : null;
-// half-star aware, matching Card.astro (never rounds up)
+// detail page pads to a full 5 with hollow stars (see lib/rating)
 const r = entry.data.rating;
-const rated = r != null && r > 0;
-const full = rated ? Math.floor(r) : 0;
-const half = rated && r - full >= 0.5 ? 1 : 0;
-const stars = rated ? '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - half)) : null;
+const stars = formatStars(r, { pad: true });
 // image() collection field → ImageMetadata, rendered as an optimized <Image> below
 const cover = entry.data.cover;
 ---

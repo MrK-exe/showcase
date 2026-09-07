@@ -7,16 +7,16 @@
 
 import { cacheAudio } from './artcache.mjs';
 
-const canonical = (url) => {
+export const canonical = (url) => {
   const m = (url || '').match(/track\/([A-Za-z0-9]+)/);
   return m ? `https://open.spotify.com/track/${m[1]}` : (url || '');
 };
 
-const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+export const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // og:description is scraped from raw HTML, so entities arrive encoded
 // ("Joey Valence &amp; Brae") and would poison the iTunes artist check.
-const unescapeHtml = (s) =>
+export const unescapeHtml = (s) =>
   (s || '')
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
@@ -42,8 +42,8 @@ async function spotifyMeta(url) {
 // When the artist is known, the match MUST agree on one of them — a blind results[0]
 // can attach the wrong song's 30-sec preview to the track. No artist scraped →
 // title-only match, but never a fallback to an arbitrary first result.
-const splitArtists = (artist) => (artist || '').split(',').map((s) => s.trim()).filter(Boolean);
-const pickTrack = (candidates, artists, title, baseTitle) => {
+export const splitArtists = (artist) => (artist || '').split(',').map((s) => s.trim()).filter(Boolean);
+export const pickTrack = (candidates, artists, title, baseTitle) => {
   const want = norm(title);
   const wantBase = norm(baseTitle);
   const artistOk = (c) =>
@@ -103,7 +103,7 @@ async function deezerMatch(artist, title) {
 }
 
 // A Spotify track URL pasted into the wrong field still yields a track id.
-const trackUrlIn = (s) => {
+export const trackUrlIn = (s) => {
   const m = (s || '').match(/track\/([A-Za-z0-9]+)/);
   return m ? `https://open.spotify.com/track/${m[1]}` : '';
 };

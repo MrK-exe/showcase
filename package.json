@@ -12,6 +12,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "generate": "node scripts/generate.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "astro": "astro",
     "cms": "cross-env ENABLE_KEYSTATIC=true astro dev"
   },
@@ -38,6 +40,7 @@
     "react-dom": "^19.2.7",
     "rss-parser": "^3.13.0",
     "satori": "^0.26.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
