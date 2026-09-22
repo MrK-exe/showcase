@@ -1,6 +1,7 @@
 ---
 title: Render Pipeline Optimization
 date: 2026-07-04
+updated: 2026-09-22
 status: wip
 summary: Games are unoptimized. I want to do something about it
 tags:
@@ -20,3 +21,131 @@ I'm not a graphics developer, but given I study CS, I can surely look into this.
 Again, I'm not trying to undermine developers here, just pointing out a trap all of us have fallen into: relying on something external *too* much. In my opinion, I think the best way to tackle this is to provide hard evidence that a specific rendering method is optimized or unoptimized for this particular game + scene + target hardware. But we all know if it is or isn't unoptimized. The question then becomes what and why this is unoptimized, and what the fix for it is.\
 \
 LLMs are too unpredictable (and we're all tired of GPT wrappers), and current frame analysis tools need experts to weigh in, so what we can do is have an algorithm that, with enough data, can determine what's rendered properly per pass, and what's not.
+
+---
+
+# So I built it, fast
+
+The thing that actually pushed me over the edge was watching Red Dead 2 or Arkham Knight look better than games with twice the budget running on much better hardware, and then a hackathon in March [abdullah: which hackathon?] gave me an excuse, which was really only a push to get something done fast. The idea was to launch the game through Nvidia's Nsight, grab GPU traces, check each render pass against a budget (shadows shouldn't eat more than X% of a frame in a game like yours) and let an LLM write up the findings (yes, the GPT wrapper I complained about two paragraphs ago).\
+\
+Almost nothing launched. Out of the nine games I pointed it at, MOTORSLICE (a demo I had lying around) was the first one that even opened under Nsight, so it became the entire test suite, all 27 traces and 3.3 GB of it.\
+\
+It also lied to me. The parser never got a single pass timing out of the Nsight exports, so the budget checker saw 0.0 ms of work and gave every capture an A, and then the LLM took that empty scoresheet and wrote a thousand words anyway, and one of those reports diagnosed an RTX 4060 with 8 GB. This laptop has a 3050 with 4, and every prompt in my logs says so. [abdullah: this is the March 7 story from the chat. keep or cut]\
+\
+The capture itself froze the game for five to ten seconds. That's fine if all you want is a screenshot, but it's useless for catching a stutter, since by the time the capture starts the stutter is long gone and all you have is one frozen frame out of the whole session.
+
+---
+
+# Take two, FramePilot
+
+In June I started over, this time as two tools instead of one.\
+\
+The sentinel watches every frame from outside the game. Intel's PresentMon reads the same Windows event stream the frame counters use, so nothing gets injected into the game (anti-cheat doesn't even notice) and the game never knows it's there. Its only job is deciding when something is wrong, whether that's a spike, a sustained drop, or the CPU holding the GPU up.\
+\
+The surgeon is the other half, and it only does anything once the sentinel says so. One RenderDoc capture while things are bad, and then it goes through what's in it, which passes ran, how many draws each one made, and what resolution the game is really rendering at underneath the upscaler.\
+\
+March actually already asked what kind of game you were making (open world, corridor, VR, competitive or cinematic), but the percentages behind each answer were numbers I made up, and a made-up number with a letter grade on it is the same nonsense minus the LLM. An expensive pass isn't automatically an unoptimized one either, a GI pass eating 30% of the frame is normal for an open world but there's no reason a corridor shooter should be paying that. So this version only hands out a grade against a well-optimized game of the same kind, measured on the same machine, which is also why it hasn't graded anything yet (see the end).
+
+![FramePilot, the desktop app](./render-pipeline-optimization/framepilot-gui.png)
+
+> (the desktop version. it scans your Steam library, guesses the engine, and marks the games it can use as a known-good reference. Half-Life 2 gets a tick.)
+
+First real session, 11 June, 131,354 frames of MOTORSLICE.
+
+![frame time across the whole session, stutters marked](./render-pipeline-optimization/session1-frametimes.png)
+
+> (every frame the sentinel saw. the rule behind the cluster of dots at the start is dumb on purpose: four or more stutters with most of them inside the first 90 seconds and it calls it shader compilation. here 11 of the 17 landed in the first 45 seconds, so it did, and it probably was, the game had just started.)
+
+This is the report it wrote for that session, trimmed:
+
+```
+# Performance report — MOTORSLICE Demo
+Session 1 · 2026-06-11 10:38 · target 60 fps · NVIDIA GeForce RTX 3050 Laptop GPU
+
+## Framerate
+- Average 91 fps (10.9ms) · median 92 fps
+- 1% low 55 fps · 0.1% low 24 fps · worst frame 491ms
+- GPU-bound 95% of frames, avg GPU-busy 10.9ms
+
+## Findings
+### 1. Shader/PSO compilation stutter  CRITICAL · confidence high
+- 11 of 17 stutters occurred in the first 45s of the session (10:39:08–10:39:53).
+- Worst spike at 10:39:29: 188ms frame (20x baseline).
+- Stutters fade once the session warms up — consistent with first-use
+  compilation rather than a scene cost.
+- Developer: Enable PSO precaching / bundled PSO caches so pipeline states
+  compile at load, not on first use (UE: r.PSOPrecaching=1, ship a precache list).
+```
+
+> (every line has to point at a number with a timestamp behind it, that was the one rule I gave the report writer.) [abdullah: the real report follows the framerate block with a line saying the 1% lows may read worse than reality because that build only stored a sample of frames. a raw recompute over all the frames gives 45.9 / 12.6. quoting as-is is fine, just so you know it's there]
+
+---
+
+# Reading the game's own stopwatch
+
+My GPU gives RenderDoc nothing when you ask it how long each pass took (no counters on this laptop), so the surgeon could see what a frame was made of but had no idea what any of it cost, which is kind of the whole point.\
+\
+What it can see is the game's own stopwatch. Unreal brackets every pass with timestamp queries (shipping builds included) and copies them into small ring buffers every frame, and those buffers are sitting inside the capture file. So instead of asking the GPU for new timings, I read the ones the game already took.
+
+```py
+"""Recover per-pass GPU timing from a game's own D3D12 timestamp queries.
+
+THE HARD PART (researched against a real MOTORSLICE capture)
+  * There are many query heaps (one per parallel command list / queue).
+  * Each heap's ring holds several frames of history, so consecutive
+    timestamps include large cross-frame / idle gaps (5-16 ms) mixed with
+    real intra-pass deltas (< 1 ms).
+  * Heaps are offset on the shared GPU clock; the captured frame is slowed
+    by RenderDoc, so absolute tick sums are meaningless.
+"""
+
+def robust_delta_cap(deltas, k=5.0):
+    """Upper bound separating intra-pass deltas from cross-frame/idle gaps.
+    median + k * MAD: needs no clock frequency, tolerates a heavy pass or two."""
+    pos = [d for d in deltas if d > 0]
+    if not pos:
+        return 0.0
+    med = _median(pos)
+    mad = _median([abs(d - med) for d in pos])
+    if mad == 0:
+        return max(med * 3.0, med + 1)
+    return med + k * mad
+```
+
+> (median plus MAD is just there to throw away the idle gaps the docstring is on about. I still haven't checked these numbers against a real profiler, so the tool only reports them as a share of the frame and doesn't grade off them.)
+
+---
+
+# What one frame of MOTORSLICE looks like
+
+```
+pass                                     conf    draws  indirect
+Shadow depths (atlas)                    high      753       251
+Occlusion culling (hardware queries)     high      672         0
+GBuffer / base pass                      high      339        83
+Depth pre-pass                           high      264        62
+Shadow depths (atlas)                    high      112        38
+Scene color / lighting+translucency      medium     75        21
+```
+
+865 draws into shadow maps against 354 in the main view, rendering at 768x576 and upscaling to 720p (so 48% of the pixels), and 22 separate full-screen passes on top of that. So yeah, that's the Vaseline from the top of this post, just in numbers now.
+
+---
+
+# My own tool stuttered the game
+
+Every capture writes a file somewhere between 260 and 450 MB, and the game stalls for about a second while it does. My own sentinel flagged that stall as a critical stutter, in the same session I was using to look for stutters, while I was sitting right there watching it.\
+\
+The stats now know when the tool caused the hitch and leave those frames out, but it did make me pause to think if this approach was wrong in the first place, since the tool has to hurt the frame to measure it.
+
+---
+
+# Where it stands (September 2026)
+
+It's paused for now.\
+\
+349 tests pass (against fake IO, so they prove the logic, not the pipeline) and the whole thing has run end to end on one game. The per-pass timings have never been checked against a real profiler. Zero of the 21 known-good reference buckets are recorded (Portal 2, Days Gone, DOOM 2016, Metro Exodus Enhanced Edition and so on, I picked the list but never got around to capturing any of them). The knowledge base has 16 entries and I wanted 40.\
+\
+My skills and knowledge just weren't complete enough to finish it, so I stepped back to gain more knowledge and also focus on work, and that ate the rest of the summer. [abdullah: nearly your words, minus the "vibe code everything" part since you said not to mention how it was built]\
+\
+I still think the idea holds up though. With the right fundamental info about specific engines and current trends (TAA, upscaling everything), you can easily optimize your game to look and run way better, and the tool is mainly there so devs and gamers can understand what and why their game looks so bad.
