@@ -125,6 +125,18 @@ export const getWorkOrder = () =>
 export const getConnectLinks = (fallback: ConnectLink[]) =>
   readJson('src/content/settings/connect.json', z.object({ links: z.array(ConnectLinkSchema) }), { links: fallback }).links;
 
+// Admin "Sections — on/off" singleton: one boolean per section id (ids come from the registry,
+// so a new section needs no change here). Missing file / missing key = on: the switches can
+// only hide a section, so a half-saved file can never blank the site.
+export const getSectionToggles = (ids: string[]): Record<string, boolean> => {
+  const allOn = Object.fromEntries(ids.map((id) => [id, true]));
+  return readJson(
+    'src/content/settings/sections.json',
+    z.object(Object.fromEntries(ids.map((id) => [id, z.boolean().catch(true)]))),
+    allOn
+  );
+};
+
 export interface SiteSettings {
   tagline: string;
   positioning: string;

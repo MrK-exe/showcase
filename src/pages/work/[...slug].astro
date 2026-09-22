@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Experience from '../../layouts/Experience.astro';
-import { site } from '../../config/site.config';
+import { sections, site } from '../../config/site.config';
 
 // Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (where getStaticPaths
 // would otherwise be ignored and an on-demand render would crash on undefined props).
@@ -11,6 +11,9 @@ export const prerender = true;
 // `${base}work/${e.id}` links emitted on the homepage (index.astro), so these resolve
 // instead of 404ing the moment an entry is authored.
 export async function getStaticPaths() {
+  // section switched off in the admin (Sections — on/off): build none of its pages either,
+  // so a stale link 404s instead of opening a page the site no longer points at
+  if (!sections.some((s) => s.id === 'work' && s.enabled)) return [];
   const entries = await getCollection('work');
   return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }

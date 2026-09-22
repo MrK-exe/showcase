@@ -1,26 +1,12 @@
-// Single source for site identity + section registry.
-// Honest boundary: reordering/enabling/re-weighting an EXISTING kind of section is a
-// config change here. Adding a NEW kind of section also needs a groupsFor() case in
-// src/pages/index.astro (and a pull script if it's fed from an external source).
-import { getSiteSettings } from '../lib/data';
+// Single source for site identity + the EFFECTIVE section registry.
+// Honest boundary: reordering/re-weighting an existing kind of section is a config change in
+// ./sections.ts; switching one on or off is the admin's "Sections — on/off" singleton. Adding a
+// NEW kind of section also needs a groupsFor() case in src/pages/index.astro (and a pull
+// script if it's fed from an external source).
+import { getSiteSettings, getSectionToggles } from '../lib/data';
+import { sectionDefaults, applyToggles, type SectionDef } from './sections';
 
-export type CollectionKey = 'work' | 'gameReviews' | 'photos';
-export type SectionWeight = 'lead' | 'standard' | 'compact';
-// how a section gets its content: authored in the CMS, uploaded, pulled at build, or a custom component
-export type SectionKind = 'authored' | 'uploaded' | 'fed' | 'component';
-
-export interface SectionDef {
-  id: string;
-  title: string;
-  kind: SectionKind;
-  collection?: CollectionKey;
-  component?: string;
-  meta?: string;
-  metaHref?: string;   // makes the meta label a link (e.g. the @handle → the account)
-  enabled: boolean;
-  // visual primacy: production sections lead, consumption sections compact
-  weight?: SectionWeight;
-}
+export type { CollectionKey, SectionWeight, SectionKind, SectionDef } from './sections';
 
 // ── owner-editable copy — edit in the admin (`npm run cms` → Site settings), which saves
 //    to src/content/settings/site.json and overrides these code defaults. Everything except
@@ -65,12 +51,11 @@ export const links = [
   { label: 'Instagram · archive', href: 'https://instagram.com/AbdullahsArchive' },
 ];
 
-// Production sections lead (weight), consumption sections compact. Order = visual order.
-export const sections: SectionDef[] = [
-  { id: 'work', title: 'Work', kind: 'authored', collection: 'work', meta: 'dev log', enabled: true, weight: 'lead' },
-  { id: 'writing', title: 'Writing', kind: 'fed', meta: 'substack', enabled: true, weight: 'standard' },
-  { id: 'photography', title: 'Photography', kind: 'uploaded', collection: 'photos', meta: '@AbdullahsArchive', metaHref: 'https://instagram.com/AbdullahsArchive', enabled: true, weight: 'standard' },
-  { id: 'films', title: 'Films', kind: 'fed', enabled: true, weight: 'compact' },
-  { id: 'games', title: 'Games', kind: 'authored', collection: 'gameReviews', meta: 'reviews · steam + playstation', enabled: true, weight: 'compact' },
-  { id: 'music', title: 'Music', kind: 'component', component: 'RecordPlayer', meta: 'record player', enabled: true, weight: 'compact' },
-];
+// Effective section registry: code defaults (./sections.ts) gated by the admin's
+// "Sections — on/off" switches (src/content/settings/sections.json). Every consumer reads THIS
+// (rail, bottom bar, hero jump links, homepage, work index, the detail routes' getStaticPaths),
+// so one switch removes a section everywhere at once.
+export const sections: SectionDef[] = applyToggles(
+  sectionDefaults,
+  getSectionToggles(sectionDefaults.map((s) => s.id))
+);

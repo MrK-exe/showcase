@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import { Image } from 'astro:assets';
 import Experience from '../../layouts/Experience.astro';
-import { site } from '../../config/site.config';
+import { sections, site } from '../../config/site.config';
 import { formatStars } from '../../lib/rating';
 
 // Always prerendered — also under ENABLE_KEYSTATIC's output:'server' (where getStaticPaths
@@ -12,6 +12,9 @@ export const prerender = true;
 // One static page per authored game review. entry.id matches the `${base}games/${g.id}`
 // links on the homepage. The URL segment is /games/ (the collection is `gameReviews`).
 export async function getStaticPaths() {
+  // section switched off in the admin (Sections — on/off): build none of its pages either,
+  // so a stale link 404s instead of opening a page the site no longer points at
+  if (!sections.some((s) => s.id === 'games' && s.enabled)) return [];
   const entries = await getCollection('gameReviews');
   return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }

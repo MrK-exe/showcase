@@ -1,4 +1,5 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
+import { sectionDefaults } from './src/config/sections';
 import { block, inline } from '@keystatic/core/content-components';
 
 /* Admin schema. Three content TYPES:
@@ -171,6 +172,26 @@ export default config({
           description: 'Short status line, e.g. “open to film + software work”. Empty = hidden.',
         }),
       },
+    }),
+
+    // ── Sections on/off: one switch per homepage section. Untick = gone from the page, the
+    //    rail, the bottom bar, the jump links and the numbering; its detail pages aren't built
+    //    either. Switches are generated from src/config/sections.ts, so a new section gets one
+    //    for free; a switch can only hide, never resurrect a code-disabled section. ──
+    sections: singleton({
+      label: 'Sections — on/off',
+      path: 'src/content/settings/sections',
+      format: { data: 'json' },
+      schema: Object.fromEntries(
+        sectionDefaults.map((s) => [
+          s.id,
+          fields.checkbox({
+            label: s.title,
+            defaultValue: true,
+            description: `Untick to remove ${s.title} from the site.`,
+          }),
+        ])
+      ),
     }),
 
     // ── Curated: pinned ordering for the Work dev log (drag to rank, like the music playlist) ──

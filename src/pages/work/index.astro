@@ -12,6 +12,10 @@ export const prerender = true;
 
 import { base } from '../../lib/base'; // '/showcase/' — guaranteed trailing slash
 import { statusLabel } from '../../lib/work';
+// Work switched off in the admin (Sections — on/off): a bodiless 204 makes Astro's static build
+// write no dist/work/index.html at all (a 404 status would get the 404 page rendered HERE
+// instead), so the path is as gone as the detail pages an empty getStaticPaths drops.
+if (!sections.some((s) => s.id === 'work' && s.enabled)) return new Response(null, { status: 204 });
 const entries = (await getCollection('work')).sort(byPinnedOrder(getWorkOrder()));
 // carry the same section number Work has on the homepage — this page reads as that
 // section expanded, not as a new section
