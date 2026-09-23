@@ -18,6 +18,11 @@ describe('parseEntry', () => {
     expect(r.isReview).toBe(true);
   });
 
+  it('decodes the entities the feed sends in review prose', () => {
+    const r = parseEntry({ title: 'X', content: '<p>I don&#039;t know what &quot;this&quot; is</p>' });
+    expect(r.excerpt).toBe('I don\'t know what "this" is');
+  });
+
   it('rating is null when memberRating is blank or absent', () => {
     expect(parseEntry({ title: 'X', content: 'text', memberRating: '' }).rating).toBeNull();
     expect(parseEntry({ title: 'X', content: 'text' }).rating).toBeNull();

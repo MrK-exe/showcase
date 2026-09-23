@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canonical, norm, splitArtists, trackUrlIn, unescapeHtml, pickTrack } from '../scripts/lib/music.mjs';
+import { canonical, norm, splitArtists, trackUrlIn, pickTrack } from '../scripts/lib/music.mjs';
+import { unescapeHtml } from '../scripts/lib/html.mjs';
 
 describe('canonical / trackUrlIn — Spotify URL extraction', () => {
   it('strips query params down to the canonical track URL', () => {

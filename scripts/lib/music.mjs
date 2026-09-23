@@ -6,6 +6,7 @@
 // from Spotify (accurate to the exact track); the audio comes from the matched catalog. No keys.
 
 import { cacheAudio } from './artcache.mjs';
+import { unescapeHtml } from './html.mjs';
 
 export const canonical = (url) => {
   const m = (url || '').match(/track\/([A-Za-z0-9]+)/);
@@ -14,21 +15,13 @@ export const canonical = (url) => {
 
 export const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// og:description is scraped from raw HTML, so entities arrive encoded
-// ("Joey Valence &amp; Brae") and would poison the iTunes artist check.
-export const unescapeHtml = (s) =>
-  (s || '')
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-
 async function spotifyMeta(url) {
   const oembed = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(15000) }).then((r) => r.json());
   let artist = '';
   try {
     const html = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
     const desc = (html.match(/<meta property="og:description" content="([^"]*)"/) || [])[1] || '';
+    // entities left encoded would poison the iTunes artist check
     artist = unescapeHtml(desc.split(' · ')[0].trim());
   } catch { /* artist optional — title-only match still works */ }
   return { title: oembed.title || '', artist, art: oembed.thumbnail_url || null };

@@ -1,6 +1,7 @@
 // Letterboxd RSS → latest reviews (poster + excerpt + rating + link). Built on rss-parser with
 // Letterboxd's namespaced fields. Favorites aren't in the feed — scraped from the profile page.
 import Parser from 'rss-parser';
+import { unescapeHtml } from './html.mjs';
 
 const parser = new Parser({
   timeout: 15000,
@@ -23,9 +24,7 @@ export const parseEntry = (it) => {
   const poster = (html.match(/<img[^>]+src=["']([^"']+)["']/i) || [])[1] || null;
   // strip the poster image + tags → plain review text; drop Letterboxd's platform
   // boilerplate so it never ships on a card as if it were the review's opening line
-  const text = html
-    .replace(/<img[^>]*>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
+  const text = unescapeHtml(html.replace(/<img[^>]*>/gi, '').replace(/<[^>]+>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^this review may contain spoilers\.?\s*/i, '');
@@ -78,7 +77,7 @@ export async function fetchFavorites(user) {
   if (!section) throw new Error('letterboxd profile: no favourites section (markup changed?)');
   const films = [];
   for (const m of section.matchAll(/data-item-name="([^"]+)"[^>]*?data-item-link="([^"]+)"/g)) {
-    const name = m[1].replace(/&amp;/g, '&').replace(/&#0?39;/g, "'").replace(/&quot;/g, '"');
+    const name = unescapeHtml(m[1]);
     films.push({
       title: name.replace(/\s*\(\d{4}\)\s*$/, ''),
       rating: null,
@@ -98,7 +97,7 @@ export async function fetchFilmPoster(filmUrl) {
     const html = await fetch(filmUrl, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) }).then((r) => r.text());
     const poster = (html.match(/"image":"([^"]+)"/) || [])[1];
     const ogImage = (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1];
-    return (poster || ogImage || null)?.replace(/&amp;/g, '&') || null;
+    return unescapeHtml(poster || ogImage) || null;
   } catch {
     return null;
   }
