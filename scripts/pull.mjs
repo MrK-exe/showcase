@@ -55,9 +55,9 @@ async function task(name, fn, fallback) {
 
 // Favorite films — the Letterboxd profile's own Favorites wall, scraped at pull time.
 // The CMS singleton is a manual OVERRIDE: any films listed there win (custom order/ratings/
-// posters); empty singleton = live profile favorites. A failed profile scrape keeps the
-// previously pulled list (same per-source isolation as Steam/PSN below), so a Letterboxd
-// hiccup can never blank favorites while fresh reviews still land.
+// posters); empty singleton = live profile favorites. Written to their own git-tracked file:
+// the scrape needs a real browser that CI may not get past, so a failed scrape throws and
+// task() keeps the committed list, which publish.cmd refreshes from the owner's machine.
 async function filmFavorites() {
   const curated = (readSingleton('film-favorites')?.films || []).map((f) => ({
     title: f.title || '',
@@ -65,15 +65,7 @@ async function filmFavorites() {
     link: f.letterboxdUrl || '',
     poster: f.poster || '',
   }));
-  let films = curated;
-  if (!films.length) {
-    try {
-      films = await fetchFavorites(sources.letterboxd);
-    } catch (e) {
-      console.warn(`  letterboxd favorites failed: ${e?.message || e} (kept last good)`);
-      return readGen('films.json', { favorites: [] }).favorites || [];
-    }
-  }
+  const films = curated.length ? curated : await fetchFavorites(sources.letterboxd);
   return Promise.all(
     films.map(async (f) => ({ ...f, poster: f.poster || (await fetchFilmPoster(f.link)) }))
   );
@@ -89,14 +81,16 @@ await task(
   { items: [] }
 );
 
-// Films — latest reviews from RSS + hand-curated favorites with fetched posters.
+// Films — latest reviews from RSS; favorites (with fetched posters) in their own file.
 await task(
   'films.json',
-  async () => ({
-    reviews: await withCachedArt(await pullLetterboxd(sources.letterboxd, 8), 'poster'),
-    favorites: await withCachedArt(await filmFavorites(), 'poster'),
-  }),
-  { reviews: [], favorites: [] }
+  async () => ({ reviews: await withCachedArt(await pullLetterboxd(sources.letterboxd, 8), 'poster') }),
+  { reviews: [] }
+);
+await task(
+  'favorites.json',
+  async () => ({ favorites: await withCachedArt(await filmFavorites(), 'poster') }),
+  { favorites: [] }
 );
 
 // Games last-played — Steam (own key+id) + PSN (npsso). Keys come from the environment / GitHub Secrets.

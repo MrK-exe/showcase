@@ -35,6 +35,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "cross-env": "^10.1.0",
     "figlet": "^1.11.0",
+    "playwright-core": "^1.63.0",
     "psn-api": "^2.18.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

@@ -87,12 +87,10 @@ export type ConnectLink = z.infer<typeof ConnectLinkSchema>;
 
 export const getWriting = () =>
   readJson('src/generated/writing.json', z.object({ items: z.array(WritingItemSchema).catch([]) }), { items: [] }).items;
-export const getFilms = () =>
-  readJson(
-    'src/generated/films.json',
-    z.object({ reviews: z.array(FilmReviewSchema).catch([]), favorites: z.array(FilmFavSchema).catch([]) }),
-    { reviews: [], favorites: [] }
-  );
+export const getFilms = () => ({
+  reviews: readJson('src/generated/films.json', z.object({ reviews: z.array(FilmReviewSchema).catch([]) }), { reviews: [] }).reviews,
+  favorites: readJson('src/generated/favorites.json', z.object({ favorites: z.array(FilmFavSchema).catch([]) }), { favorites: [] }).favorites,
+});
 export const getLastPlayed = () =>
   readJson(
     'src/generated/lastplayed.json',

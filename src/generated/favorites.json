@@ -1,0 +1,23 @@
+{
+  "favorites": [
+    {
+      "title": "Inception",
+      "rating": null,
+      "link": "https://letterboxd.com/film/inception/",
+      "poster": "art/02b3845e5b8a15b5.jpg"
+    },
+    {
+      "title": "Drive",
+      "rating": null,
+      "link": "https://letterboxd.com/film/drive-2011/",
+      "poster": "art/4d23c09df662aac1.jpg"
+    },
+    {
+      "title": "Eternal Sunshine of the Spotless Mind",
+      "rating": null,
+      "link": "https://letterboxd.com/film/eternal-sunshine-of-the-spotless-mind/",
+      "poster": "art/c9a5deb14e18e040.jpg"
+    }
+  ],
+  "fetchedAt": "2026-09-23T10:30:33.137Z"
+}

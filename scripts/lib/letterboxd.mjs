@@ -2,6 +2,7 @@
 // Letterboxd's namespaced fields. Favorites aren't in the feed — scraped from the profile page.
 import Parser from 'rss-parser';
 import { unescapeHtml } from './html.mjs';
+import { browserHtml } from './browser.mjs';
 
 const parser = new Parser({
   timeout: 15000,
@@ -64,15 +65,8 @@ export async function pullLetterboxd(user, limit = 8) {
 // The profile's Favorites wall (max 4). Not in any feed, so scrape the profile page: each
 // favorite is a poster div carrying data-item-name="Drive (2011)" + data-item-link="/film/…/".
 // The poster itself is lazy-loaded client-side, so it's fetched per film via fetchFilmPoster.
-// Ratings stay null — Letterboxd's own favorites wall doesn't show them either. Throws on a
-// failed fetch so the caller can keep the last good list.
-export async function fetchFavorites(user) {
-  const res = await fetch(`https://letterboxd.com/${user}/`, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; showcase-build; +https://mrk-exe.github.io/showcase/)' },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) throw new Error(`letterboxd profile: http ${res.status}`);
-  const html = await res.text();
+// Ratings stay null — Letterboxd's own favorites wall doesn't show them either.
+export const parseFavorites = (html) => {
   const section = (html.match(/<section id="favourites"[\s\S]*?<\/section>/i) || [])[0];
   if (!section) throw new Error('letterboxd profile: no favourites section (markup changed?)');
   const films = [];
@@ -86,6 +80,20 @@ export async function fetchFavorites(user) {
     });
   }
   return films.slice(0, 4);
+};
+
+// Profile pages sit behind a Cloudflare challenge that plain fetch and headless Chrome can't
+// pass, so a challenged fetch falls back to a real browser. Throws on failure so the caller
+// keeps the last good list.
+export async function fetchFavorites(user) {
+  const url = `https://letterboxd.com/${user}/`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; showcase-build; +https://mrk-exe.github.io/showcase/)' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (res.ok) return parseFavorites(await res.text());
+  if (res.headers.get('cf-mitigated') !== 'challenge') throw new Error(`letterboxd profile: http ${res.status}`);
+  return parseFavorites(await browserHtml(url, '#favourites'));
 }
 
 // A favorite film's poster isn't in the RSS feed, so grab it from the film page. Use the

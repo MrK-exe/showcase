@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseEntry } from '../scripts/lib/letterboxd.mjs';
+import { parseEntry, parseFavorites } from '../scripts/lib/letterboxd.mjs';
 
 // parseEntry turns a raw Letterboxd RSS item into a card. It's a string-scraper over feed
 // HTML — exactly the kind of brittle code that breaks silently, so pin its behaviour.
@@ -47,5 +47,33 @@ describe('parseEntry', () => {
     expect(r.excerpt.endsWith('…')).toBe(true);
     expect(r.excerpt.length).toBeLessThanOrEqual(241);
     expect(r.excerpt).not.toMatch(/wor…$/); // never cut mid-word (falls back to a space)
+  });
+});
+
+// Markup trimmed from the live profile page (Sep 2026), attributes in Letterboxd's order.
+const poster = (name, slug) =>
+  `<li class="griditem"><div class="favourite-production-poster-container" data-owner="abdullahVEVO">` +
+  `<div class="react-component" data-component-class="LazyPoster" data-image-width="150" data-image-height="225" ` +
+  `data-item-name="${name}" data-item-slug="${slug}" data-item-link="/film/${slug}/" data-item-full-display-name="${name}"></div></div></li>`;
+const profile = (items) =>
+  `<section id="favourites" class="section"><h2 class="section-heading">Favorite films</h2>` +
+  `<div class="poster-grid"><ul class="grid -p150">${items.join('')}</ul></div></section>`;
+
+describe('parseFavorites', () => {
+  it('reads title + absolute film link off the favorites wall, dropping the year', () => {
+    const films = parseFavorites(profile([poster('Inception (2010)', 'inception'), poster('Drive (2011)', 'drive-2011')]));
+    expect(films).toEqual([
+      { title: 'Inception', rating: null, link: 'https://letterboxd.com/film/inception/', poster: '' },
+      { title: 'Drive', rating: null, link: 'https://letterboxd.com/film/drive-2011/', poster: '' },
+    ]);
+  });
+
+  it('decodes entities in film names', () => {
+    const [film] = parseFavorites(profile([poster('Schindler&#039;s List (1993)', 'schindlers-list')]));
+    expect(film.title).toBe("Schindler's List");
+  });
+
+  it('throws when the page has no favorites wall, so the caller keeps the last good list', () => {
+    expect(() => parseFavorites('<title>Just a moment...</title>')).toThrow(/no favourites section/);
   });
 });
