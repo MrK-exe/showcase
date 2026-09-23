@@ -9,8 +9,8 @@
 //              no preview. Keyed by a caller-supplied STABLE id, because hashing the
 //              rotating tokenized URL would re-download + duplicate every build.)
 //
-// Both dirs are gitignored and restored between CI runs by actions/cache — an existing
-// file is a cache hit, so a dead CDN keeps serving the last good copy.
+// Both dirs are restored between CI runs by actions/cache (art is also committed, audio is
+// gitignored) — an existing file is a cache hit, so a dead CDN keeps serving the last good copy.
 import { createHash } from 'node:crypto';
 import { writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -18,11 +18,18 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
+// Spotify serves one cover from several hosts (i.scdn.co, image-cdn-ak/-fa.spotifycdn.com) and
+// oEmbed alternates between them, so a URL key re-downloads the same cover on every switch.
+export const artKey = (url) => {
+  const m = String(url).match(/^https:\/\/(?:i\.scdn\.co|[\w-]+\.spotifycdn\.com)\/image\/(\w+)$/i);
+  return m ? `spotify-image:${m[1]}` : url;
+};
+
 // Extension comes from the response content-type (many CDN URLs carry none).
-function makeCache({ dir, prefix, types, label, keepRemoteOnFail }) {
+function makeCache({ dir, prefix, types, label, keepRemoteOnFail, keyOf = (url) => url }) {
   const abs = resolve(ROOT, dir);
   let index = null; // hash → '<prefix>/<hash>.<ext>', built once from the dir listing
-  return async function cache(url, stableKey = url) {
+  return async function cache(url, stableKey = keyOf(url)) {
     if (!url || typeof url !== 'string') return keepRemoteOnFail ? url ?? null : null;
     if (!/^https:\/\//i.test(url)) return url; // already a local/cached path
     if (index === null) {
@@ -60,6 +67,7 @@ export const cacheArt = makeCache({
   types: { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif' },
   label: 'art  ',
   keepRemoteOnFail: true,
+  keyOf: artKey,
 });
 
 export const cacheAudio = makeCache({
