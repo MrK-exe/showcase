@@ -3,6 +3,6 @@
   "writing": true,
   "photography": true,
   "films": true,
-  "games": true,
+  "games": false,
   "music": true
 }
