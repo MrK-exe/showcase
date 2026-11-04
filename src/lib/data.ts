@@ -140,6 +140,7 @@ export interface SiteSettings {
   positioning: string;
   bio: string;
   cvUrl: string;
+  cvMonth: string;
   availability: string;
 }
 // Admin "Site settings" singleton. Per-field .catch(fallback.*) so a missing field keeps
@@ -152,6 +153,7 @@ export const getSiteSettings = (fallback: SiteSettings): SiteSettings =>
       positioning: z.string().catch(fallback.positioning),
       bio: z.string().catch(fallback.bio),
       cvUrl: z.string().catch(fallback.cvUrl),
+      cvMonth: z.string().catch(fallback.cvMonth),
       availability: z.string().catch(fallback.availability),
     }),
     fallback

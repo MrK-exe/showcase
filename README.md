@@ -44,6 +44,12 @@ ships no React, no server, no admin route.
   as local files; preview them live in the same server.
 - **Publish**: double-click `publish.cmd` (repo root) — commits everything and pushes;
   CI deploys in ~5 min. Nothing goes live until you publish.
+- **CV**: never committed, so no old copy survives in the public history. The admin saves it
+  to `cv/` (kept out of git via `.git/info/exclude`, since Keystatic hides `.gitignore`d
+  files), `publish.cmd` makes it the only file on the repo's `cv` release, and the build
+  publishes it as `cv/Abdullah_Aletai_CV_<month>.pdf`. Needs the GitHub CLI on the machine
+  you publish from (`winget install --id GitHub.cli`, then `gh auth login`). The `cv` tag pins
+  a commit, so any future history rewrite must move it too. See `src/config/cv.mjs`.
 - **Section order/enable/weight, identity, default links**: `src/config/site.config.ts`.
   The "Site settings" values in `src/content/settings/site.json` override its copy fields.
 - Honest boundary: adding/reordering/disabling an **existing kind** of section is

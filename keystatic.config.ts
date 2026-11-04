@@ -1,5 +1,6 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
 import { sectionDefaults } from './src/config/sections';
+import { cvDir, cvMonthPattern } from './src/config/cv.mjs';
 import { block, inline } from '@keystatic/core/content-components';
 
 /* Admin schema. Three content TYPES:
@@ -163,9 +164,14 @@ export default config({
         }),
         cvUrl: fields.file({
           label: 'CV / résumé (PDF)',
-          description: 'Upload a CV/résumé PDF here — the site’s “cv ↓” button links to it. Remove the file to hide the button. (Don’t paste a path from your computer; use the upload control.)',
-          directory: 'public/cv',
+          description: 'Upload a CV/résumé PDF here — the site’s “cv ↓” button links to it. Choosing a new file replaces the old one everywhere when you publish (site and GitHub). Remove the file to hide the button. (Don’t paste a path from your computer; use the upload control.)',
+          directory: cvDir,
           publicPath: '/cv/',
+        }),
+        cvMonth: fields.text({
+          label: 'CV month',
+          description: 'Month and year of this CV, e.g. “Oct 2026”. It names the file visitors get: Abdullah_Aletai_CV_Oct_2026.pdf. Empty = Abdullah_Aletai_CV.pdf.',
+          validation: { pattern: { regex: cvMonthPattern, message: 'Use a short month and a year, e.g. “Oct 2026”.' } },
         }),
         availability: fields.text({
           label: 'Availability',

@@ -21,3 +21,6 @@ echo.
 
 rem Runs in the foreground; Astro opens the admin (/keystatic) once it's ready.
 call npm run cms -- --open /keystatic
+rem precms refuses to start the admin without the CV file (a save would then drop the CV),
+rem so keep the reason on screen.
+if errorlevel 1 pause

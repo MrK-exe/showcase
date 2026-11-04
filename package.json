@@ -5,9 +5,9 @@
   "private": true,
   "scripts": {
     "pull": "node scripts/pull.mjs",
-    "predev": "node scripts/pull.mjs",
+    "predev": "node scripts/pull.mjs && node scripts/cv.mjs ensure",
     "dev": "astro dev",
-    "prebuild": "node scripts/pull.mjs",
+    "prebuild": "node scripts/pull.mjs && node scripts/cv.mjs ensure",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "astro": "astro",
+    "precms": "node scripts/cv.mjs ensure",
     "cms": "cross-env ENABLE_KEYSTATIC=true astro dev"
   },
   "dependencies": {

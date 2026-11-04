@@ -18,9 +18,11 @@ const editable = getSiteSettings({
   positioning: '',
   // 2–3 lines in your voice: who you are and what to hire you for.
   bio: '',
-  // Path (under the site base) to a downloadable CV/résumé PDF, e.g. 'abdullah-aletai-cv.pdf'
-  // once the file is in /public. The CV button appears when set.
+  // The admin's CV upload ('/cv/cvUrl.pdf'). The CV button appears when set; see ./cv.mjs
+  // for where the file lives and how it ships.
   cvUrl: '',
+  // e.g. 'Oct 2026' → the published file is Abdullah_Aletai_CV_Oct_2026.pdf
+  cvMonth: '',
   // Optional short availability line, e.g. 'open to film + software work'.
   availability: '',
 });
