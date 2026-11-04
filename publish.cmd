@@ -24,12 +24,7 @@ git add -A
 git diff --cached --quiet -- cv public/cv
 if errorlevel 1 goto cvstaged
 git diff --cached --quiet
-if %errorlevel% equ 0 (
-  if "%CV_RC%"=="2" goto redeploy
-  echo Nothing to publish - no changes since the last publish.
-  pause
-  exit /b 0
-)
+if not errorlevel 1 goto pushcheck
 
 echo Changes to publish:
 git diff --cached --stat
@@ -41,6 +36,18 @@ if errorlevel 1 (
   echo COMMIT FAILED - see the message above.
   pause
   exit /b 1
+)
+
+rem Push everything main has that GitHub doesn't: this run's commit, or one an earlier run
+rem committed but couldn't push.
+:pushcheck
+set "AHEAD="
+for /f %%n in ('git rev-list --count origin/main..main') do set "AHEAD=%%n"
+if "%AHEAD%"=="0" (
+  if "%CV_RC%"=="2" goto redeploy
+  echo Nothing to publish - no changes since the last publish.
+  pause
+  exit /b 0
 )
 
 git push origin main
@@ -58,7 +65,7 @@ echo Published! Live at https://mrk-exe.github.io/showcase/ in about 5 minutes.
 pause
 exit /b 0
 
-rem Only the CV changed, so there is no push to trigger a deploy: start one.
+rem Only the CV changed and there is nothing to push, so no push triggers a deploy: start one.
 :redeploy
 node scripts\cv.mjs redeploy
 if errorlevel 1 (
