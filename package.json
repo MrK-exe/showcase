@@ -43,6 +43,6 @@
     "rss-parser": "^3.13.0",
     "satori": "^0.26.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.5"
   }
 }
