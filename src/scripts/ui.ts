@@ -29,6 +29,7 @@ export function initUi({ sound }: { sound: Sound }) {
     inerted.forEach((c) => c.removeAttribute('inert')); inerted = [];
     document.querySelectorAll('[data-open][aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
     modalEl = null; opener = null;
+    sound.close();
     back?.focus?.({ preventScroll: true });
   };
   document.querySelectorAll('[data-open]').forEach((b) =>
